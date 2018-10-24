@@ -1,0 +1,13 @@
+phasers:    [255, 0, 0]
+torpedo:    [255, 0, 0]
+
+Races:
+    federation: federation.ship
+    klingon:    klingon.ship
+    tholian:    tholian.ship
+    dominion:   dominion.ship
+    borg:       borg.ship
+
+Special:
+    sentry:     sentry.ship
+    random: [federation,klingon,tholian,dominion,borg]

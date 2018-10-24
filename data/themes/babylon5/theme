@@ -1,0 +1,13 @@
+phasers:    [255, 127, 0]
+torpedo:    [0, 127, 0]
+
+Races:
+    earth:      earth.ship
+    minbari:    minbari.ship
+    narn:       narn.ship
+    centauri:   centauri.ship
+    shadow:     shadow.ship
+
+Special:
+    sentry:     ../classic/sentry.ship
+    random: [earth,minbari,narn,centauri,shadow]

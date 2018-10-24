@@ -1,0 +1,20 @@
+phasers:    [255, 0, 0]
+torpedo:    [255, 0, 0]
+
+Races:
+    federation: ../classic/federation.ship
+    klingon:    ../classic/klingon.ship
+    tholian:    ../classic/tholian.ship
+    dominion:   ../classic/dominion.ship
+    borg:       ../classic/borg.ship
+    terran:     ../sbiti/terran.ship
+    psiloth:    ../sbiti/psiloth.ship
+    zlorg:      ../sbiti/zlorg.ship
+    wental:     ../sbiti/wental.ship
+    riftbound:  ../sbiti/riftbound.ship
+
+Special:
+    sentry:     ../classic/sentry.ship
+    random-classic: [federation,klingon,tholian,dominion,borg]
+    random-sbiti:   [terran,psiloth,zlorg,wental,riftbound]
+    random:         [federation,klingon,tholian,dominion,borg,terran,psiloth,zlorg,wental,riftbound]

@@ -1,0 +1,6 @@
+specials:
+  - ablative
+  - regeneration
+torpedo:    [255,0,0]
+colorkey:   [255,255,255]
+image:      centauri.png

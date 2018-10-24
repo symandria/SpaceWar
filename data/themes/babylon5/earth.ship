@@ -1,0 +1,4 @@
+specials:
+  - teleportation
+colorkey:   [255,255,255]
+image:      earth.png

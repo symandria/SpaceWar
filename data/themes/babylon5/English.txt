@@ -1,0 +1,138 @@
+<theme-babylon5>
+Babylon 5
+<earth>
+Earth
+<minbari>
+Minbari
+<narn>
+Narn
+<centauri>
+Centauri
+<shadow>
+Shadow
+<faction-name-earth>
+Earth Alliance
+<faction-name-minbari>
+Minbari Federation
+<faction-name-narn>
+Narn Regime
+<faction-name-centauri>
+Centauri Republic
+<faction-name-shadow>
+Shadows
+<victory-quote-earth>
+$"The best way to understand someone is to fight him,  
+$ make him angry. That's when you see the real person."
+$                                     -Jeffrey Sincliar
+<victory-quote-minbari>
+$"Only one human captain has ever survived battle with
+$ a Minbari fleet. He is behind me. You are in front  
+$ of me. If you value your lives, be somewhere else." 
+$                                              -Delenn
+<victory-quote-narn>
+$"By G'Quan, I can't recall the last time I was in a       
+$ fight like that! No moral ambiguity, no hopeless battle  
+$ against ancient and overwhelming forces! They were the   
+$ bad guys, as you say, and we were the good guys. And they
+$ made a very satisfying 'thump' when they hit the floor." 
+$                                                    -G'Kar
+<victory-quote-centauri>
+$"Blood calls out for blood."
+$              -Londo Mollari
+<victory-quote-shadow>
+$"Things fall apart; the centre cannot hold;        
+$ Mere anarchy is loosed upon the world,            
+$ The blood-dimmed tide is loosed, and everywhere   
+$ The ceremony of innocence is drowned;             
+$ And what rough beast, its hour come round at last,
+$ Slouches towards Bethlehem to be born?"           
+$                              -William Bulter Yeats
+<draw-quote-babylon5>
+$"They are alone. They are a dying 
+$ people. We should let them pass."
+$                     -Kosh Naranek
+<captain-names-earth>
+Sinclair
+Franklin
+Garibaldi
+Hague
+Cole
+Harris
+<captain-names-minbari>
+Branmer
+Durhan
+Kalain
+Neroon
+Rashok
+Sineval
+<captain-names-narn>
+G'Sten
+Ko'Vin
+N'Fal
+Na'Kal
+Na'Tok
+Sh'Drog
+<captain-names-centauri>
+Refa
+Mollari
+Cotto
+Jaddo
+Cholini
+<captain-names-shadow>
+[UNKNOWN DATA]
+<ship-names-earth>
+E.A.S. Acheron
+E.A.S. Achilles
+E.A.S. Agamemnon
+E.A.S. Agrippa
+E.A.S. Alexander
+E.A.S. Apollo
+E.A.S. Cadmus
+E.A.S. Cerberus
+E.A.S. Charon
+E.A.S. Churchill
+E.A.S. Damocles
+E.A.S. Delphi
+E.A.S. Excalibur
+E.A.S. Furies
+E.A.S. Heracles
+E.A.S. Heraclion
+E.A.S. Hermes
+E.A.S. Hydra
+E.A.S. Juno
+E.A.S. Medusa
+E.A.S. Nemesis
+E.A.S. Nimrod
+E.A.S. Olympic
+E.A.S. Orion
+E.A.S. Persephone
+E.A.S. Pollux
+E.A.S. Pournelle
+E.A.S. Roanoke
+E.A.S. Talos
+E.A.S. Theseus
+E.A.S. Vesta
+E.A.S. Zeus
+<ship-names-minbari>
+Dogato
+Drala Fi
+Enfili
+Ingata
+Solaris
+Takari
+Trigati
+Valen'Tha
+<ship-names-narn>
+G'Tok
+Na'Tan
+Tal'Quith
+T'Loth
+G'Quan
+<ship-names-centauri>
+Molios
+Valerius
+Vellurian
+Vorchan
+Primus
+<ship-names-shadow>
+[UNKNOWN DATA]

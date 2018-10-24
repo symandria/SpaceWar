@@ -1,0 +1,14 @@
+specials:
+  - cloaking
+  - teleportation
+  - regeneration
+phasers:
+  - [255,0,255]
+  - [0,0,0]
+  - [255,0,255]
+  - [0,0,0]
+  - [255,0,255]
+torpedo:    [255,0,255]
+colorkey:   [255,255,255]
+image:      shadow.png
+cloaked:    cloaked-shadow.png

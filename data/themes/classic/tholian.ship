@@ -1,0 +1,5 @@
+specials:
+  - acceleration
+phasers:    [0,0,255]
+colorkey:   [255,255,255]
+image:      tholian.png

@@ -1,0 +1,27 @@
+average points: 973.3333333333334
+average shields: 73.83333333333333
+battle-settings:
+- false
+- [random, earth]
+- [random, minbari]
+- [random, narn]
+engine: 5
+games played: 6
+kills-centauri: 0
+kills-earth: 3
+kills-minbari: 5
+kills-narn: 5
+kills-sentry: 0
+kills-shadow: 0
+name: Cato Vindi
+phasers: 45
+phasers hit: 10
+phasers shot: 18
+race: shadow
+shields: 100
+ship: Nickel Zest
+theme: babylon5
+torpedo: 30
+torpedoes hit: 18
+torpedoes shot: 38
+xp: 5840

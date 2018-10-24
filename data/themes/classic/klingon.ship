@@ -1,0 +1,5 @@
+specials:
+  - cloaking
+colorkey:   [255,255,255]
+image:      klingon.png
+cloaked:    cloaked-klingon.png

@@ -1,0 +1,27 @@
+average points: 780.0
+average shields: 0.0
+battle-settings:
+- false
+- [cadet, random]
+- [cadet, dominion]
+- [cadet, random]
+engine: 5
+games played: 1
+kills-borg: 0
+kills-dominion: 1
+kills-federation: 0
+kills-klingon: 0
+kills-sentry: 0
+kills-tholian: 1
+name: Nova
+phasers: 20
+phasers hit: 0
+phasers shot: 3
+race: klingon
+shields: 100
+ship: Oblivion
+theme: classic
+torpedo: 30
+torpedoes hit: 4
+torpedoes shot: 10
+xp: 780

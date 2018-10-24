@@ -1,0 +1,12 @@
+specials:
+  - regeneration
+  - teleportation
+phasers:
+  - [0, 0, 255]
+  - [0, 127, 255]
+  - [0, 255, 255]
+  - [0, 255, 127]
+  - [0, 255, 0]
+torpedo:    [0, 0, 255]
+colorkey:   [255,255,255]
+image:      minbari.png

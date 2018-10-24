@@ -1,0 +1,27 @@
+average points: 0
+average shields: 0
+battle-settings:
+- false
+- [cadet, random]
+- null
+- null
+engine: 5
+games played: 0
+kills-centauri: 0
+kills-earth: 0
+kills-minbari: 0
+kills-narn: 0
+kills-sentry: 0
+kills-shadow: 0
+name: Cato Vindi
+phasers: 20
+phasers hit: 0
+phasers shot: 0
+race: random
+shields: 100
+ship: Nickel Zest
+theme: babylon5
+torpedo: 30
+torpedoes hit: 0
+torpedoes shot: 0
+xp: 0

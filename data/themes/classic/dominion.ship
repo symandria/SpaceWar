@@ -1,0 +1,4 @@
+specials:
+  - regeneration
+colorkey:   [255,255,255]
+image:      dominion.png
