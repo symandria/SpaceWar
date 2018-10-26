@@ -1410,9 +1410,9 @@ def fire_phaser(who, where, step):
                 damage_multiplier = 3
                 if not who.cloaked:
                     who.wasCloaked = False
-            what.shot((who.phasers // 5) * damage_multiplier)
             if "phaser_focus" in who.specials:
-                what.shot((who.phasers // 5) * damage_multiplier)
+                damage_multiplier *= 2
+            what.shot((who.phasers // 5) * damage_multiplier)
             if who == player and what.shields < 0 and before >= 0:
                 match_stats[player]["kills-"+what.type] += 1
             damage = before - what.shields
@@ -1420,10 +1420,10 @@ def fire_phaser(who, where, step):
                 match_stats[who]["teamdamage"] -= damage
             else:
                 match_stats[who]["damage"] += damage
-            global already_hit
-            if who == player and not already_hit:
+            global playerAlreadyHitWithPhaserThisTurn
+            if who == player and not playerAlreadyHitWithPhaserThisTurn:
                 match_stats[player]["phasers hit"] += 1
-                already_hit = True
+                playerAlreadyHitWithPhaserThisTurn = True
         else:
             what.blam()
         return color, origin, cpoint, 2
@@ -1663,14 +1663,12 @@ while True:
                     for ship in ship_list:
                         if ship.action == "torpedo":
                             fire_torpedo(ship, ship.target)
-                elif move_time <= 50 and move_time > 45:
-                    if move_time == 50:
-                        already_hit = False
-                        if player and player.action == "phaser":
-                            match_stats[player]["phasers shot"] += 1
+                elif move_time % 9 == 0 and ((move_time // 9) >= 3 and (move_time // 9) <= 7):
+                    if move_time == 63:
+                        playerAlreadyHitWithPhaserThisTurn = False
                     for ship in ship_list:
                         if ship.action == "phaser":
-                            draw_phasers.append(fire_phaser(ship, ship.target, 50 - move_time))
+                            draw_phasers.append(fire_phaser(ship, ship.target, (move_time // 9) - 3))
                 elif move_time == 1:
                     for ship in ship_list:
                         if ship.action == "self-destruct":
