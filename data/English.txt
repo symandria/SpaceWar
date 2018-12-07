@@ -354,6 +354,8 @@ Phasers
 Torpedo
 <stat-engine>
 Engine
+<stat-weapon power>
+Weapon Power
 <player-setup-title>
 XP: {xp}  RANK: {formatted_rank}
 $Bonus points: {bonus}

@@ -85,19 +85,14 @@ for i, rank in enumerate(RANKS[:-1]):
 
 STATS = {
     "shields": {
-        "min": 100,
-        "max": 360,
-        "step": 10,
+        "min": 150,
+        "max": 2000,
+        "step": 15,
     },
-    "phasers": {
-        "min": 20,
+    "weapon power": {
+        "min": 5,
         "max": 100,
-        "step": 5,
-    },
-    "torpedo": {
-        "min": 30,
-        "max": 120,
-        "step": 5,
+        "step": 1,
     },
     "engine": {
         "min": 5,
@@ -937,9 +932,10 @@ def create_new_character(theme):
         ("rank", RANKS[0]),
         ("xp", 0),
         ("bonus", 0),
-        ("shields", 100),
-        ("phasers", 20),
-        ("torpedo", 30),
+        ("shields", 150),
+        ("weapon power", 5),
+        ("phasers", 30),
+        ("torpedo", 45),
         ("engine", 5),
         ("games played", 0),
         ("phasers shot", 0),
@@ -1014,7 +1010,7 @@ def start_battle():
     race = player_character["race"]
     if race in themes[THEME]["Special"]:
         race = random.choice(themes[THEME]["Special"][race])
-    player = Ship(race, hex_to_coords(1, 1), 180, player_character["rank"], player_character["name"], player_character["ship"], player_character["shields"], player_character["phasers"], player_character["torpedo"], player_character["engine"], human=True)
+    player = Ship(race, hex_to_coords(1, 1), 180, player_character["rank"], player_character["name"], player_character["ship"], player_character["shields"], player_character["weapon power"] * 2, player_character["weapon power"] * 9, player_character["engine"], human=True)
     home_player = player
     ship_list.append(player)
     match_stats[player] = {"damage": 0, "teamdamage": 0, "victory": 0, "rank": 0, "phasers shot": 0, "phasers hit": 0, "torpedoes shot": 0, "torpedoes hit": 0, "kills-sentry": 0}
@@ -1057,7 +1053,7 @@ def start_battle():
                 valid_ship_names = ship_names
             e_captain = random.choice(valid_captain_names)
             e_name = random.choice(valid_ship_names)
-            enemy = Ship(race, hex_to_coords(*((14, 10), (1, 11), (14, 1))[i]), (180 if i == 1 else 0), rank, e_captain, e_name, stats["shields"], stats["phasers"], stats["torpedo"], stats["engine"])
+            enemy = Ship(race, hex_to_coords(*((14, 10), (1, 11), (14, 1))[i]), (180 if i == 1 else 0), rank, e_captain, e_name, stats["shields"], stats["weapon power"] * 6, stats["weapon power"] * 9, stats["engine"])
             ship_list.append(enemy)
             match_stats[enemy] = {"damage": 0, "teamdamage": 0, "victory": 0, "rank": 0}
         elif slot == "sentry":
@@ -1224,7 +1220,7 @@ def player_setup():
             return SelectionList("{0}: {1!r}".format(load_text("stat-"+stat), player_character[stat]), *menu)
         return callback
 
-    selection_list = SelectionList(load_text("player-setup-title").format(formatted_rank=load_text("rank-"+player_character["rank"]), **player_character), (load_text("player-setup-name").format(player_character["name"]), change_captain_name), (load_text("player-setup-ship").format(player_character["ship"]), change_ship_name), (load_text("player-setup-race").format(load_text(player_character["race"] if player_character["race"] in races else "special-option-"+player_character["race"])), change_race), (load_text("player-setup-shields").format(player_character["shields"]), spend_points("shields")), (load_text("player-setup-phasers").format(player_character["phasers"]), spend_points("phasers")), (load_text("player-setup-torpedo").format(player_character["torpedo"]), spend_points("torpedo")), (load_text("player-setup-engine").format(player_character["engine"]), spend_points("engine")), (load_text("menu-back"), campaign_menu))
+    selection_list = SelectionList(load_text("player-setup-title").format(formatted_rank=load_text("rank-"+player_character["rank"]), **player_character), (load_text("player-setup-name").format(player_character["name"]), change_captain_name), (load_text("player-setup-ship").format(player_character["ship"]), change_ship_name), (load_text("player-setup-race").format(load_text(player_character["race"] if player_character["race"] in races else "special-option-"+player_character["race"])), change_race), (load_text("player-setup-shields").format(player_character["shields"]), spend_points("shields")), (load_text("player-setup-phasers").format(player_character["weapon power"] * 6), spend_points("weapon power")), (load_text("player-setup-torpedo").format(player_character["weapon power"] * 9), spend_points("weapon power")), (load_text("player-setup-engine").format(player_character["engine"]), spend_points("engine")), (load_text("menu-back"), campaign_menu))
     return selection_list
 
 
@@ -1412,7 +1408,7 @@ def fire_phaser(who, where, step):
                     who.wasCloaked = False
             if "phaser_focus" in who.specials:
                 damage_multiplier *= 2
-            what.shot((who.phasers // 5) * damage_multiplier)
+            what.shot((who.phasers // 3) * damage_multiplier)
             if who == player and what.shields < 0 and before >= 0:
                 match_stats[player]["kills-"+what.type] += 1
             damage = before - what.shields
