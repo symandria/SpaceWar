@@ -14,6 +14,9 @@ import random
 import yaml
 import glob
 
+# Import our refactored modules
+from spacewar.utils import hex_to_coords, coords_to_hex, hex_distance, wordwrap_render
+
 # This somewhat-hackish import changes YAML's behavior just by being imported;
 # to stop flake8 from complaining about the unused import, I've added the
 # "noqa" tag.
@@ -393,29 +396,6 @@ for row in range(14):
 background = screen.copy()
 
 
-def hex_to_coords(row, column):
-    return (14*column + ((row-1) % 2)*7 - 9, 8+10*row)
-
-
-def coords_to_hex(pos):
-    if pos[0] < 2 or pos[1] < 17 or pos[0] > 155 or pos[1] > 156:
-        return None
-    elif pos[0] < 9 and (pos[1] - 17) % 20 >= 10:
-        return None
-    elif (pos[1] - 17) % 20 < 10:
-        return (pos[1] - 17) // 10 + 1, (pos[0] - 2) // 14 + 1
-    else:
-        return (pos[1] - 17) // 10 + 1, (pos[0] - 9) // 14 + 1
-
-
-def hex_distance(hex1, hex2):
-    hex1 = hex1[0], hex1[1] - (hex1[0] + 1) // 2
-    hex1 += 0 - hex1[0] - hex1[1],
-    hex2 = hex2[0], hex2[1] - (hex2[0] + 1) // 2
-    hex2 += 0 - hex2[0] - hex2[1],
-    return max(abs(hex1[0] - hex2[0]), abs(hex1[1] - hex2[1]), abs(hex1[2] - hex2[2]))
-
-
 class Ship(object):
     def __init__(self, type, pos, angle, rank, captain, name, shields, phasers, torpedoes, engine, human=False):
         self.type = type
@@ -525,70 +505,10 @@ class Infobox(object):
             height += surface.get_height()
 
 
-def wordwrap_render(text, font, width):
-    surfaces = []
-    text = text.split("\n")
-    line = 0
-    final_width = 0
-    final_height = 0
-    while line < len(text):
-        center = False
-        temp = text[line]
-        if temp.startswith("$"):
-            center = True
-            temp = temp[1:]
-        elif temp.startswith("\$"):
-            temp = temp[1:]
-        temp_words = temp.split(" ")
-        result = 1
-        cur = " ".join(temp_words[:result])
-        while "\t" in cur:
-            idx = cur.index("\t")
-            spaces = " " * (8 - idx % 8)
-            cur = spaces.join(cur.partition("\t")[::2])
-        temp_surf = font.render(cur, True, FOREGROUND)
-        while temp_surf.get_width() < width and result < len(temp_words):
-            result += 1
-            cur = " ".join(temp_words[:result])
-            while "\t" in cur:
-                idx = cur.index("\t")
-                spaces = " " * (8 - idx % 8)
-                cur = spaces.join(cur.partition("\t")[::2])
-            temp_surf = font.render(cur, True, FOREGROUND)
-        if temp_surf.get_width() >= width:
-            result -= 1
-            cur = " ".join(temp_words[:result])
-            while "\t" in cur:
-                idx = cur.index("\t")
-                spaces = " " * (8 - idx % 8)
-                cur = spaces.join(cur.partition("\t")[::2])
-            temp_surf = font.render(cur, True, FOREGROUND)
-            text.insert(line+1, ("$" if center else "") + " ".join(temp_words[result:]))
-        surfaces.append((temp_surf, center))
-        if temp_surf.get_width() > final_width:
-            final_width = temp_surf.get_width()
-        final_height += temp_surf.get_height()
-        line += 1
-    final_surf = pygame.Surface((final_width, final_height))
-    final_surf.fill(BACKGROUND)
-    final_surf.set_colorkey(BACKGROUND)
-    y = 0
-    for surf, center in surfaces:
-        if center:
-            rect = surf.get_rect()
-            rect.top = y
-            rect.centerx = final_width // 2
-            final_surf.blit(surf, rect)
-        else:
-            final_surf.blit(surf, (0, y))
-        y += surf.get_height()
-    return final_surf
-
-
 class Messagebox(object):
     def __init__(self, text, font):
         self.font = font
-        self.text = wordwrap_render(text, self.font, display.get_width() - 4)
+        self.text = wordwrap_render(text, self.font, display.get_width() - 4, FOREGROUND, BACKGROUND)
         self.image = pygame.Surface((self.text.get_width() + 4, self.text.get_height() + 4))
         self.image.fill(BACKGROUND)
         pygame.draw.rect(self.image, FOREGROUND, (0, 0, self.image.get_width(), self.image.get_height()), 1)
@@ -686,7 +606,7 @@ class SelectionButton(object):
 
 class SelectionList(object):
     def __init__(self, title, *buttons):
-        self.title = wordwrap_render(title, infofont, display.get_width() - 4)
+        self.title = wordwrap_render(title, infofont, display.get_width() - 4, FOREGROUND, BACKGROUND)
         self.title_rect = self.title.get_rect()
         self.buttons = [SelectionButton(text, callback) for text, callback in buttons]
         height = self.title_rect.height

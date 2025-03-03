@@ -1,0 +1,3 @@
+"""
+Battle mechanics for SpaceWar
+""" 

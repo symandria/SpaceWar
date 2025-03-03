@@ -1,0 +1,3 @@
+"""
+Character management for SpaceWar
+""" 
