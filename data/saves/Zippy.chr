@@ -1,0 +1,31 @@
+average points: 0
+average shields: 0
+battle-settings:
+- false
+-   - fleet admiral
+    - random
+-   - fleet admiral
+    - random
+-   - fleet admiral
+    - random
+engine: 6
+games played: 0
+kills-borg: 0
+kills-dominion: 0
+kills-federation: 0
+kills-klingon: 0
+kills-sentry: 0
+kills-tholian: 0
+name: Zippy
+phasers: 30
+phasers hit: 0
+phasers shot: 0
+race: dominion
+shields: 150
+ship: Jemma
+theme: classic
+torpedo: 45
+torpedoes hit: 0
+torpedoes shot: 0
+weapon power: 29
+xp: 100000
