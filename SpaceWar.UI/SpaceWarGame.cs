@@ -116,6 +116,28 @@ namespace SpaceWar.UI
                 (GraphicsAdapter.DefaultAdapter.CurrentDisplayMode.Height - Window.ClientBounds.Height) / 2
             );
             
+            // Create the hex grid
+            _hexGrid = new HexGrid(10, 10);
+            
+            // Create the menu system
+            _menuSystem = new MenuSystem(_font, GraphicsDevice);
+            
+            // Subscribe to menu events
+            _menuSystem.OnStartGame += StartGame;
+            _menuSystem.OnRunTests += RunTests;
+            _menuSystem.OnTestSettingChanged += (message) => {
+                _debugInfo += message + "\n";
+            };
+            
+            // Subscribe to object manipulation events
+            _menuSystem.OnCreateObject += CreateObject;
+            _menuSystem.OnMoveObject += MoveObject;
+            _menuSystem.OnDeleteObject += DeleteObject;
+            
+            // Create empty lists for game objects
+            _gameObjects = new List<GameObjectViewModel>();
+            _shipTextures = new Dictionary<string, Texture2D>();
+            
             base.Initialize();
             
             Console.WriteLine("Initialize completed.");
@@ -395,13 +417,55 @@ namespace SpaceWar.UI
         /// </summary>
         private void UpdateGame(GameTime gameTime)
         {
+            // Update game objects
+            for (int i = 0; i < _gameObjects.Count; i++)
+            {
+                GameObjectViewModel gameObject = _gameObjects[i];
+                
+                // Update movement
+                if (gameObject.IsMoving)
+                {
+                    // Calculate the distance to the target
+                    Vector2 direction = gameObject.TargetPosition - gameObject.Position;
+                    float distance = direction.Length();
+                    
+                    // If we're close enough, snap to the target position
+                    if (distance < 0.1f)
+                    {
+                        gameObject.Position = gameObject.TargetPosition;
+                        gameObject.IsMoving = false;
+                        Console.WriteLine($"Object {i} reached target position");
+                        _debugInfo += $"Object {i} reached target position\n";
+                    }
+                    else
+                    {
+                        // Normalize the direction and move towards the target
+                        direction.Normalize();
+                        
+                        // Move at the specified speed
+                        float moveAmount = gameObject.Speed * (float)gameTime.ElapsedGameTime.TotalSeconds;
+                        gameObject.Position += direction * moveAmount;
+                        
+                        // Smoothly rotate towards the target rotation
+                        float rotationDifference = gameObject.TargetRotation - gameObject.Rotation;
+                        
+                        // Normalize the rotation difference to be between -PI and PI
+                        while (rotationDifference > MathHelper.Pi)
+                            rotationDifference -= MathHelper.TwoPi;
+                        while (rotationDifference < -MathHelper.Pi)
+                            rotationDifference += MathHelper.TwoPi;
+                        
+                        // Apply a portion of the rotation difference
+                        gameObject.Rotation += rotationDifference * 0.1f;
+                    }
+                }
+            }
+            
             // Return to menu on M key
             if (Keyboard.GetState().IsKeyDown(Keys.M) && !_prevKeyboardState.IsKeyDown(Keys.M))
             {
                 ReturnToMenu();
             }
-            
-            // TODO: Add game update logic
         }
         
         /// <summary>
@@ -530,6 +594,115 @@ namespace SpaceWar.UI
             _currentState = GameStateType.Playing;
             Console.WriteLine("Game started");
             _debugInfo += "Game started\n";
+        }
+        
+        /// <summary>
+        /// Runs the test mode
+        /// </summary>
+        private void RunTests()
+        {
+            Console.WriteLine("Running tests");
+            _debugInfo += "Running tests\n";
+            
+            // Load ship textures if not already loaded
+            if (_shipTextures.Count == 0)
+            {
+                LoadShipTextures();
+            }
+            
+            // Create ship objects if not already created
+            if (_gameObjects.Count == 0)
+            {
+                CreateShipObjects();
+            }
+        }
+
+        /// <summary>
+        /// Creates a new game object
+        /// </summary>
+        /// <param name="shipType">The type of ship to create</param>
+        /// <param name="col">The column position</param>
+        /// <param name="row">The row position</param>
+        /// <param name="rotation">The rotation in degrees</param>
+        private void CreateObject(string shipType, int col, int row, int rotation)
+        {
+            Console.WriteLine($"Creating {shipType} at {col},{row} with rotation {rotation}");
+            _debugInfo += $"Creating {shipType} at {col},{row} with rotation {rotation}\n";
+            
+            // Load textures if not already loaded
+            if (_shipTextures.Count == 0)
+            {
+                LoadShipTextures();
+            }
+            
+            // Create the game object
+            GameObjectViewModel gameObject = new GameObjectViewModel
+            {
+                Position = new Vector2(col, row),
+                Rotation = MathHelper.ToRadians(rotation),
+                Texture = _shipTextures.ContainsKey(shipType) ? _shipTextures[shipType] : _pixelTexture
+            };
+            
+            // Add the game object to the list
+            _gameObjects.Add(gameObject);
+            
+            Console.WriteLine($"Created object with ID {_gameObjects.Count - 1}");
+            _debugInfo += $"Created object with ID {_gameObjects.Count - 1}\n";
+        }
+        
+        /// <summary>
+        /// Moves a game object
+        /// </summary>
+        /// <param name="objectId">The ID of the object to move</param>
+        /// <param name="targetCol">The target column</param>
+        /// <param name="targetRow">The target row</param>
+        /// <param name="speed">The speed of movement</param>
+        private void MoveObject(int objectId, int targetCol, int targetRow, int speed)
+        {
+            if (objectId < 0 || objectId >= _gameObjects.Count)
+            {
+                Console.WriteLine($"Invalid object ID: {objectId}");
+                _debugInfo += $"Invalid object ID: {objectId}\n";
+                return;
+            }
+            
+            GameObjectViewModel gameObject = _gameObjects[objectId];
+            
+            Console.WriteLine($"Moving object {objectId} to {targetCol},{targetRow} at speed {speed}");
+            _debugInfo += $"Moving object {objectId} to {targetCol},{targetRow} at speed {speed}\n";
+            
+            // Set the target position
+            gameObject.TargetPosition = new Vector2(targetCol, targetRow);
+            gameObject.Speed = speed;
+            gameObject.IsMoving = true;
+            
+            // Calculate the direction to face
+            Vector2 direction = gameObject.TargetPosition - gameObject.Position;
+            if (direction != Vector2.Zero)
+            {
+                direction.Normalize();
+                gameObject.TargetRotation = (float)Math.Atan2(direction.Y, direction.X);
+            }
+        }
+        
+        /// <summary>
+        /// Deletes a game object
+        /// </summary>
+        /// <param name="objectId">The ID of the object to delete</param>
+        private void DeleteObject(int objectId)
+        {
+            if (objectId < 0 || objectId >= _gameObjects.Count)
+            {
+                Console.WriteLine($"Invalid object ID: {objectId}");
+                _debugInfo += $"Invalid object ID: {objectId}\n";
+                return;
+            }
+            
+            Console.WriteLine($"Deleting object {objectId}");
+            _debugInfo += $"Deleting object {objectId}\n";
+            
+            // Remove the game object from the list
+            _gameObjects.RemoveAt(objectId);
         }
     }
 } 

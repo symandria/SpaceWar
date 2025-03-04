@@ -18,27 +18,57 @@ namespace SpaceWar.UI
         private Color _backgroundColor;
         private Color _hoverColor;
         private bool _isHovered;
-        private Action _onClick;
+        private Action? _onClick;
+        private Action<Button>? _onClickWithButton;
         private Texture2D _pixelTexture;
+
+        public string Text 
+        { 
+            get { return _text; } 
+            set { _text = value; } 
+        }
 
         /// <summary>
         /// Creates a new button
         /// </summary>
-        /// <param name="bounds">The button's position and size</param>
-        /// <param name="text">The button's text</param>
+        /// <param name="bounds">The bounds of the button</param>
+        /// <param name="text">The text to display on the button</param>
         /// <param name="font">The font to use for the text</param>
-        /// <param name="onClick">The action to perform when clicked</param>
-        /// <param name="pixelTexture">The pixel texture for drawing</param>
+        /// <param name="onClick">The action to perform when the button is clicked</param>
+        /// <param name="pixelTexture">A 1x1 white texture for drawing</param>
         public Button(Rectangle bounds, string text, SpriteFont font, Action onClick, Texture2D pixelTexture)
         {
             _bounds = bounds;
             _text = text;
             _font = font;
             _onClick = onClick;
+            _onClickWithButton = null;
             _pixelTexture = pixelTexture;
             _textColor = Color.Black;
-            _backgroundColor = new Color(200, 200, 200, 255); // Fully opaque background
-            _hoverColor = new Color(220, 220, 220, 255); // Fully opaque hover color
+            _backgroundColor = new Color(200, 200, 200);
+            _hoverColor = new Color(220, 220, 220);
+            _isHovered = false;
+        }
+        
+        /// <summary>
+        /// Creates a new button with a callback that receives the button instance
+        /// </summary>
+        /// <param name="bounds">The bounds of the button</param>
+        /// <param name="text">The text to display on the button</param>
+        /// <param name="font">The font to use for the text</param>
+        /// <param name="onClickWithButton">The action to perform when the button is clicked, receiving the button instance</param>
+        /// <param name="pixelTexture">A 1x1 white texture for drawing</param>
+        public Button(Rectangle bounds, string text, SpriteFont font, Action<Button> onClickWithButton, Texture2D pixelTexture)
+        {
+            _bounds = bounds;
+            _text = text;
+            _font = font;
+            _onClick = null;
+            _onClickWithButton = onClickWithButton;
+            _pixelTexture = pixelTexture;
+            _textColor = Color.Black;
+            _backgroundColor = new Color(200, 200, 200);
+            _hoverColor = new Color(220, 220, 220);
             _isHovered = false;
         }
 
@@ -50,14 +80,21 @@ namespace SpaceWar.UI
         public void Update(MouseState mouseState, MouseState prevMouseState)
         {
             // Check if the mouse is over the button
-            _isHovered = _bounds.Contains(mouseState.Position);
+            _isHovered = _bounds.Contains(mouseState.X, mouseState.Y);
 
             // Check if the button was clicked
             if (_isHovered && 
                 mouseState.LeftButton == ButtonState.Released && 
                 prevMouseState.LeftButton == ButtonState.Pressed)
             {
-                _onClick?.Invoke();
+                if (_onClick != null)
+                {
+                    _onClick();
+                }
+                else if (_onClickWithButton != null)
+                {
+                    _onClickWithButton(this);
+                }
             }
         }
 
@@ -149,24 +186,47 @@ namespace SpaceWar.UI
         /// <summary>
         /// Adds a button to the menu
         /// </summary>
-        /// <param name="text">The button's text</param>
-        /// <param name="onClick">The action to perform when clicked</param>
+        /// <param name="text">The text to display on the button</param>
+        /// <param name="onClick">The action to perform when the button is clicked</param>
         public void AddButton(string text, Action onClick)
         {
-            // Calculate button position based on the number of existing buttons
-            int buttonWidth = 200;
-            int buttonHeight = 40;
-            int buttonSpacing = 10;
-            int startY = 100; // Start position for the first button
+            // Calculate the position of the button based on the number of buttons already in the menu
+            int buttonY = 100 + _buttons.Count * 60;
             
-            Rectangle bounds = new Rectangle(
-                (_graphicsDevice.Viewport.Width - buttonWidth) / 2, // Center horizontally using actual viewport width
-                startY + (_buttons.Count * (buttonHeight + buttonSpacing)),
-                buttonWidth,
-                buttonHeight
+            // Create the button
+            Button button = new Button(
+                new Rectangle(100, buttonY, 600, 50),
+                text,
+                _font,
+                onClick,
+                _pixelTexture
             );
             
-            _buttons.Add(new Button(bounds, text, _font, onClick, _pixelTexture));
+            // Add the button to the list
+            _buttons.Add(button);
+        }
+        
+        /// <summary>
+        /// Adds a button to the menu with a callback that receives the button instance
+        /// </summary>
+        /// <param name="text">The text to display on the button</param>
+        /// <param name="onClickWithButton">The action to perform when the button is clicked, receiving the button instance</param>
+        public void AddButton(string text, Action<Button> onClickWithButton)
+        {
+            // Calculate the position of the button based on the number of buttons already in the menu
+            int buttonY = 100 + _buttons.Count * 60;
+            
+            // Create the button
+            Button button = new Button(
+                new Rectangle(100, buttonY, 600, 50),
+                text,
+                _font,
+                onClickWithButton,
+                _pixelTexture
+            );
+            
+            // Add the button to the list
+            _buttons.Add(button);
         }
 
         /// <summary>
@@ -234,15 +294,26 @@ namespace SpaceWar.UI
         private GraphicsDevice _graphicsDevice;
         private Texture2D _pixelTexture;
         
-        // Test flags
+        // Test mode settings
         public bool ShowHexGrid { get; private set; } = true;
         public bool ShowTestShips { get; private set; } = true;
         public bool InTestMode { get; private set; } = false;
         
         // Events
-        public event Action OnStartGame;
-        public event Action OnRunTests;
-        public event Action<string> OnTestSettingChanged;
+        public event Action? OnStartGame;
+        public event Action? OnRunTests;
+        public event Action<string>? OnTestSettingChanged;
+        
+        // New events for menu navigation
+        public event Action? OnNewCharacter;
+        public event Action? OnLoadCharacter;
+        public event Action? OnInstantAction;
+        public event Action? OnPlayerSetup;
+        public event Action? OnBattleSetup;
+        public event Action? OnStartBattle;
+        public event Action<string, int, int, int>? OnCreateObject;
+        public event Action<int, int, int, int>? OnMoveObject;
+        public event Action<int>? OnDeleteObject;
 
         /// <summary>
         /// Creates a new menu system
@@ -260,8 +331,13 @@ namespace SpaceWar.UI
             _pixelTexture = new Texture2D(graphicsDevice, 1, 1);
             _pixelTexture.SetData(new[] { Color.White });
             
-            // Create menus
+            // Create all menus
             CreateMainMenu();
+            CreateNewCharacterMenu();
+            CreateLoadCharacterMenu();
+            CreateCampaignMenu();
+            CreateBattleSetupMenu();
+            CreatePlayerSetupMenu();
             CreateTestMenu();
             
             // Set the current menu to the main menu
@@ -275,29 +351,196 @@ namespace SpaceWar.UI
         {
             Menu mainMenu = new Menu("SpaceWar", _font, _graphicsDevice, _pixelTexture);
             
-            mainMenu.AddButton("Play Game", () => {
-                OnStartGame?.Invoke();
+            mainMenu.AddButton("New Character", () => {
+                _currentMenu = "NewCharacter";
+            });
+            
+            mainMenu.AddButton("Load Character", () => {
+                _currentMenu = "LoadCharacter";
+            });
+            
+            mainMenu.AddButton("Instant Action", () => {
+                // For now, do nothing
+                Console.WriteLine("Instant Action selected - not implemented yet");
             });
             
             mainMenu.AddButton("Tests", () => {
                 _currentMenu = "Tests";
                 InTestMode = true;
-                
-                // Make the test menu transparent
-                if (_menus.ContainsKey("Tests"))
-                {
-                    _menus["Tests"].SetTransparent(true);
-                }
-                
-                // Start the test mode
                 OnRunTests?.Invoke();
             });
             
-            mainMenu.AddButton("Exit", () => {
+            mainMenu.AddButton("Quit", () => {
                 Environment.Exit(0);
             });
             
             _menus.Add("Main", mainMenu);
+        }
+        
+        /// <summary>
+        /// Creates the new character menu
+        /// </summary>
+        private void CreateNewCharacterMenu()
+        {
+            Menu newCharacterMenu = new Menu("New Character", _font, _graphicsDevice, _pixelTexture);
+            
+            // For now, just a placeholder for themes
+            newCharacterMenu.AddButton("Federation Theme", () => {
+                Console.WriteLine("Federation Theme selected - not implemented yet");
+                _currentMenu = "Campaign";
+            });
+            
+            newCharacterMenu.AddButton("Klingon Theme", () => {
+                Console.WriteLine("Klingon Theme selected - not implemented yet");
+                _currentMenu = "Campaign";
+            });
+            
+            newCharacterMenu.AddButton("Romulan Theme", () => {
+                Console.WriteLine("Romulan Theme selected - not implemented yet");
+                _currentMenu = "Campaign";
+            });
+            
+            newCharacterMenu.AddButton("Cancel", () => {
+                _currentMenu = "Main";
+            });
+            
+            _menus.Add("NewCharacter", newCharacterMenu);
+        }
+        
+        /// <summary>
+        /// Creates the load character menu
+        /// </summary>
+        private void CreateLoadCharacterMenu()
+        {
+            Menu loadCharacterMenu = new Menu("Load Character", _font, _graphicsDevice, _pixelTexture);
+            
+            // For now, just placeholder characters
+            loadCharacterMenu.AddButton("Character 1", () => {
+                Console.WriteLine("Character 1 selected - not implemented yet");
+                _currentMenu = "Campaign";
+            });
+            
+            loadCharacterMenu.AddButton("Character 2", () => {
+                Console.WriteLine("Character 2 selected - not implemented yet");
+                _currentMenu = "Campaign";
+            });
+            
+            loadCharacterMenu.AddButton("Character 3", () => {
+                Console.WriteLine("Character 3 selected - not implemented yet");
+                _currentMenu = "Campaign";
+            });
+            
+            loadCharacterMenu.AddButton("Cancel", () => {
+                _currentMenu = "Main";
+            });
+            
+            _menus.Add("LoadCharacter", loadCharacterMenu);
+        }
+        
+        /// <summary>
+        /// Creates the campaign menu
+        /// </summary>
+        private void CreateCampaignMenu()
+        {
+            Menu campaignMenu = new Menu("Campaign", _font, _graphicsDevice, _pixelTexture);
+            
+            campaignMenu.AddButton("New Battle", () => {
+                _currentMenu = "BattleSetup";
+            });
+            
+            campaignMenu.AddButton("Player Setup", () => {
+                _currentMenu = "PlayerSetup";
+            });
+            
+            campaignMenu.AddButton("View Statistics", () => {
+                Console.WriteLine("View Statistics selected - not implemented yet");
+            });
+            
+            campaignMenu.AddButton("Save Character", () => {
+                Console.WriteLine("Save Character selected - not implemented yet");
+            });
+            
+            campaignMenu.AddButton("Return to Main Menu", () => {
+                _currentMenu = "Main";
+            });
+            
+            _menus.Add("Campaign", campaignMenu);
+        }
+        
+        /// <summary>
+        /// Creates the battle setup menu
+        /// </summary>
+        private void CreateBattleSetupMenu()
+        {
+            Menu battleSetupMenu = new Menu("Battle Setup", _font, _graphicsDevice, _pixelTexture);
+            
+            battleSetupMenu.AddButton("Team Battle: OFF", (Button button) => {
+                // Toggle button text
+                if (button.Text.Contains("OFF"))
+                {
+                    button.Text = "Team Battle: ON";
+                }
+                else
+                {
+                    button.Text = "Team Battle: OFF";
+                }
+            });
+            
+            battleSetupMenu.AddButton("AI Opponent: Easy", (Button button) => {
+                // Cycle through difficulty levels
+                if (button.Text.Contains("Easy"))
+                {
+                    button.Text = "AI Opponent: Medium";
+                }
+                else if (button.Text.Contains("Medium"))
+                {
+                    button.Text = "AI Opponent: Hard";
+                }
+                else
+                {
+                    button.Text = "AI Opponent: Easy";
+                }
+            });
+            
+            battleSetupMenu.AddButton("Start Battle", () => {
+                OnStartGame?.Invoke();
+            });
+            
+            battleSetupMenu.AddButton("Cancel", () => {
+                _currentMenu = "Campaign";
+            });
+            
+            _menus.Add("BattleSetup", battleSetupMenu);
+        }
+        
+        /// <summary>
+        /// Creates the player setup menu
+        /// </summary>
+        private void CreatePlayerSetupMenu()
+        {
+            Menu playerSetupMenu = new Menu("Player Setup", _font, _graphicsDevice, _pixelTexture);
+            
+            playerSetupMenu.AddButton("Change Name", () => {
+                Console.WriteLine("Change Name selected - not implemented yet");
+            });
+            
+            playerSetupMenu.AddButton("Change Ship Name", () => {
+                Console.WriteLine("Change Ship Name selected - not implemented yet");
+            });
+            
+            playerSetupMenu.AddButton("Change Race", () => {
+                Console.WriteLine("Change Race selected - not implemented yet");
+            });
+            
+            playerSetupMenu.AddButton("Adjust Stats", () => {
+                Console.WriteLine("Adjust Stats selected - not implemented yet");
+            });
+            
+            playerSetupMenu.AddButton("Cancel", () => {
+                _currentMenu = "Campaign";
+            });
+            
+            _menus.Add("PlayerSetup", playerSetupMenu);
         }
 
         /// <summary>
@@ -335,7 +578,28 @@ namespace SpaceWar.UI
                 OnTestSettingChanged?.Invoke(message);
             });
             
-            testMenu.AddButton("Back", () => {
+            testMenu.AddButton("Create Federation Ship", () => {
+                string message = "Creating federation ship at 1,1";
+                Console.WriteLine(message);
+                OnTestSettingChanged?.Invoke(message);
+                OnCreateObject?.Invoke("federation", 1, 1, 180);
+            });
+            
+            testMenu.AddButton("Move Ship to Bottom Right", () => {
+                string message = "Moving ship to bottom right";
+                Console.WriteLine(message);
+                OnTestSettingChanged?.Invoke(message);
+                OnMoveObject?.Invoke(0, 9, 9, 2);
+            });
+            
+            testMenu.AddButton("Delete Ship", () => {
+                string message = "Deleting ship";
+                Console.WriteLine(message);
+                OnTestSettingChanged?.Invoke(message);
+                OnDeleteObject?.Invoke(0);
+            });
+            
+            testMenu.AddButton("Return to Main Menu", () => {
                 _currentMenu = "Main";
                 InTestMode = false;
             });

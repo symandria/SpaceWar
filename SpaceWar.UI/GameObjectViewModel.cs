@@ -11,89 +11,59 @@ namespace SpaceWar.UI
     public class GameObjectViewModel
     {
         // The texture of the game object
-        private readonly Texture2D _texture;
+        public Texture2D Texture { get; set; }
         
-        // The hex grid position
-        private int _row;
-        private int _column;
+        // The position on the hex grid (can be fractional for smooth movement)
+        public Vector2 Position { get; set; }
         
-        // The rotation in degrees (0, 60, 120, 180, 240, 300)
-        private int _rotation;
+        // The target position for movement
+        public Vector2 TargetPosition { get; set; }
+        
+        // The rotation in radians
+        public float Rotation { get; set; }
+        
+        // The target rotation for smooth rotation
+        public float TargetRotation { get; set; }
+        
+        // The speed of movement (hex cells per second)
+        public float Speed { get; set; } = 2.0f;
+        
+        // Whether the object is currently moving
+        public bool IsMoving { get; set; }
         
         // The origin point for rotation (center of the texture)
         private Vector2 _origin;
         
         /// <summary>
-        /// Gets the current row position
+        /// Creates a new game object view model with default values
         /// </summary>
-        public int Row => _row;
-        
-        /// <summary>
-        /// Gets the current column position
-        /// </summary>
-        public int Column => _column;
-        
-        /// <summary>
-        /// Gets the current rotation in degrees
-        /// </summary>
-        public int Rotation => _rotation;
+        public GameObjectViewModel()
+        {
+            Position = Vector2.Zero;
+            TargetPosition = Vector2.Zero;
+            Rotation = 0;
+            TargetRotation = 0;
+            IsMoving = false;
+        }
         
         /// <summary>
         /// Creates a new game object view model
         /// </summary>
         /// <param name="texture">The texture to display</param>
-        /// <param name="row">Initial row position (1-based)</param>
-        /// <param name="column">Initial column position (1-based)</param>
-        /// <param name="rotation">Initial rotation in degrees</param>
-        public GameObjectViewModel(Texture2D texture, int row, int column, int rotation)
+        /// <param name="row">Initial row position</param>
+        /// <param name="column">Initial column position</param>
+        /// <param name="rotation">Initial rotation in radians</param>
+        public GameObjectViewModel(Texture2D texture, int row, int column, float rotation)
         {
-            _texture = texture;
-            _row = row;
-            _column = column;
-            _rotation = NormalizeRotation(rotation);
+            Texture = texture;
+            Position = new Vector2(column, row);
+            TargetPosition = Position;
+            Rotation = rotation;
+            TargetRotation = rotation;
+            IsMoving = false;
             
             // Set the origin to the center of the texture
-            _origin = new Vector2(_texture.Width / 2f, _texture.Height / 2f);
-        }
-        
-        /// <summary>
-        /// Moves the object to a new hex position
-        /// </summary>
-        /// <param name="row">New row position (1-based)</param>
-        /// <param name="column">New column position (1-based)</param>
-        public void MoveTo(int row, int column)
-        {
-            _row = row;
-            _column = column;
-        }
-        
-        /// <summary>
-        /// Rotates the object to a new direction
-        /// </summary>
-        /// <param name="rotation">New rotation in degrees</param>
-        public void RotateTo(int rotation)
-        {
-            _rotation = NormalizeRotation(rotation);
-        }
-        
-        /// <summary>
-        /// Normalizes the rotation to one of the six hex directions (0, 60, 120, 180, 240, 300)
-        /// </summary>
-        /// <param name="rotation">Rotation in degrees</param>
-        /// <returns>Normalized rotation in degrees</returns>
-        private int NormalizeRotation(int rotation)
-        {
-            // Ensure rotation is positive
-            rotation = ((rotation % 360) + 360) % 360;
-            
-            // Round to the nearest 60 degrees
-            int normalizedRotation = (int)Math.Round(rotation / 60.0) * 60;
-            
-            // Handle the special case of 360 degrees
-            if (normalizedRotation == 360)
-                normalizedRotation = 0;
-                
-            return normalizedRotation;
+            _origin = new Vector2(texture.Width / 2f, texture.Height / 2f);
         }
         
         /// <summary>
@@ -103,32 +73,83 @@ namespace SpaceWar.UI
         /// <param name="hexGridRenderer">The hex grid renderer</param>
         public void Draw(SpriteBatch spriteBatch, HexGridRenderer hexGridRenderer)
         {
+            if (Texture == null) return;
+            
+            // If _origin hasn't been set yet (e.g., when using the default constructor)
+            if (_origin == Vector2.Zero && Texture != null)
+            {
+                _origin = new Vector2(Texture.Width / 2f, Texture.Height / 2f);
+            }
+            
             // Get the screen position from the hex grid renderer - this returns the center of the hex
-            Vector2 position = hexGridRenderer.HexToScreenCoords(_row, _column);
+            Vector2 position = hexGridRenderer.HexToScreenCoords((int)Position.Y, (int)Position.X);
+            
+            // For smooth movement between hexes, interpolate the position
+            if (IsMoving)
+            {
+                // Get the screen position of the target hex
+                Vector2 targetScreenPos = hexGridRenderer.HexToScreenCoords((int)TargetPosition.Y, (int)TargetPosition.X);
+                
+                // Calculate the fractional part of the position
+                Vector2 fractionalPart = Position - new Vector2((int)Position.X, (int)Position.Y);
+                
+                // Interpolate between the current hex and the next hex
+                Vector2 nextHexPos = hexGridRenderer.HexToScreenCoords((int)Position.Y + Math.Sign(TargetPosition.Y - Position.Y), 
+                                                                      (int)Position.X + Math.Sign(TargetPosition.X - Position.X));
+                
+                // Adjust position based on the fractional part
+                position = Vector2.Lerp(position, nextHexPos, fractionalPart.Length());
+            }
             
             // Calculate a scale factor that makes the object fit within the hex
-            // The original PNG files are small, so we need to scale them up to be visible
-            // but not so large that they overlap neighboring hexes
             float hexSize = 10 * hexGridRenderer.ScaleFactor; // Approximate hex radius in pixels
-            float objectScale = hexSize / Math.Max(_texture.Width, _texture.Height);
+            float objectScale = hexSize / Math.Max(Texture.Width, Texture.Height);
             
             // Reduce the scale by 15% as requested
             objectScale *= 0.85f;
             
             // Draw the texture with rotation
             spriteBatch.Draw(
-                _texture,
+                Texture,
                 position,
                 null,
                 Color.White, // Use original colors from the texture
-                MathHelper.ToRadians(_rotation),
+                Rotation,
                 _origin, // This ensures the texture is centered at the position
                 objectScale,
                 SpriteEffects.None,
                 0f
             );
             
-            // Debug outline removed as requested
+            // Draw a debug line showing the direction of movement if the object is moving
+            if (IsMoving)
+            {
+                // Draw a line from the current position to the target position
+                DrawLine(spriteBatch, position, 
+                         position + new Vector2((float)Math.Cos(Rotation), (float)Math.Sin(Rotation)) * hexSize, 
+                         Color.Yellow * 0.7f, 2);
+            }
+        }
+        
+        /// <summary>
+        /// Draws a line between two points
+        /// </summary>
+        private void DrawLine(SpriteBatch spriteBatch, Vector2 start, Vector2 end, Color color, float thickness = 1f)
+        {
+            Vector2 edge = end - start;
+            float angle = (float)Math.Atan2(edge.Y, edge.X);
+            
+            spriteBatch.Draw(
+                Texture, // Using the same texture, assuming it's a white pixel texture
+                start,
+                null,
+                color,
+                angle,
+                new Vector2(0, 0.5f), // Origin at the left middle
+                new Vector2(edge.Length(), thickness),
+                SpriteEffects.None,
+                0f
+            );
         }
     }
 } 
