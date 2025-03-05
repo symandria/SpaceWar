@@ -246,8 +246,7 @@ namespace SpaceWar.UI
         /// Draws the menu
         /// </summary>
         /// <param name="spriteBatch">The sprite batch to draw with</param>
-        /// <param name="viewport">The viewport dimensions</param>
-        public void Draw(SpriteBatch spriteBatch, Viewport viewport)
+        public void Draw(SpriteBatch spriteBatch)
         {
             // Draw menu background with appropriate transparency
             Color bgColor = _backgroundColor;
@@ -257,28 +256,57 @@ namespace SpaceWar.UI
                 bgColor = new Color(240, 240, 240, 150) * (1.0f/255.0f);
             }
             
-            spriteBatch.Draw(
-                _pixelTexture, 
-                new Rectangle(0, 0, viewport.Width, viewport.Height), 
-                bgColor
-            );
+            // Calculate the menu dimensions
+            int menuWidth = 800;
+            int menuHeight = 100 + _buttons.Count * 60 + 50;
             
-            // Draw menu title
-            Vector2 titleSize = _font.MeasureString(_title);
-            Vector2 titlePosition = new Vector2(
-                (viewport.Width - titleSize.X) / 2,
-                30
-            );
+            // Center the menu on the screen
+            int menuX = (_graphicsDevice.Viewport.Width - menuWidth) / 2;
+            int menuY = (_graphicsDevice.Viewport.Height - menuHeight) / 2;
             
-            // Draw title with shadow for better visibility
-            spriteBatch.DrawString(_font, _title, titlePosition + new Vector2(1, 1), Color.Black * 0.7f);
-            spriteBatch.DrawString(_font, _title, titlePosition, Color.Black);
+            // Draw the menu background
+            Rectangle menuRect = new Rectangle(menuX, menuY, menuWidth, menuHeight);
+            spriteBatch.Draw(_pixelTexture, menuRect, bgColor);
             
-            // Draw buttons
+            // Draw a border around the menu
+            DrawBorder(spriteBatch, _pixelTexture, menuRect, 2, Color.Black);
+            
+            // Draw the menu title
+            if (_font != null)
+            {
+                Vector2 titleSize = _font.MeasureString(_title);
+                Vector2 titlePosition = new Vector2(
+                    (_graphicsDevice.Viewport.Width - titleSize.X) / 2,
+                    50);
+                
+                // Draw title with shadow for better visibility
+                spriteBatch.DrawString(_font, _title, titlePosition + new Vector2(1, 1), Color.Black * 0.7f);
+                spriteBatch.DrawString(_font, _title, titlePosition, Color.Black);
+            }
+            
+            // Draw all buttons
             foreach (var button in _buttons)
             {
                 button.Draw(spriteBatch);
             }
+        }
+        
+        /// <summary>
+        /// Draws a border around a rectangle
+        /// </summary>
+        private void DrawBorder(SpriteBatch spriteBatch, Texture2D pixel, Rectangle rect, int thickness, Color color)
+        {
+            // Draw top line
+            spriteBatch.Draw(pixel, new Rectangle(rect.X, rect.Y, rect.Width, thickness), color);
+            
+            // Draw bottom line
+            spriteBatch.Draw(pixel, new Rectangle(rect.X, rect.Y + rect.Height - thickness, rect.Width, thickness), color);
+            
+            // Draw left line
+            spriteBatch.Draw(pixel, new Rectangle(rect.X, rect.Y, thickness, rect.Height), color);
+            
+            // Draw right line
+            spriteBatch.Draw(pixel, new Rectangle(rect.X + rect.Width - thickness, rect.Y, thickness, rect.Height), color);
         }
     }
 
@@ -295,9 +323,9 @@ namespace SpaceWar.UI
         private Texture2D _pixelTexture;
         
         // Test mode settings
-        public bool ShowHexGrid { get; private set; } = true;
-        public bool ShowTestShips { get; private set; } = true;
-        public bool InTestMode { get; private set; } = false;
+        public bool ShowHexGrid { get; set; } = true;
+        public bool ShowTestShips { get; set; } = true;
+        public bool InTestMode { get; set; } = false;
         
         // Events
         public event Action? OnStartGame;
@@ -564,16 +592,16 @@ namespace SpaceWar.UI
                 OnTestSettingChanged?.Invoke(message);
             });
             
-            testMenu.AddButton("Draw Test Ships", () => {
+            testMenu.AddButton("Show Test Ships", () => {
                 ShowTestShips = true;
-                string message = "Test ships enabled";
+                string message = "Test ships visible";
                 Console.WriteLine(message);
                 OnTestSettingChanged?.Invoke(message);
             });
             
             testMenu.AddButton("Hide Test Ships", () => {
                 ShowTestShips = false;
-                string message = "Test ships disabled";
+                string message = "Test ships hidden";
                 Console.WriteLine(message);
                 OnTestSettingChanged?.Invoke(message);
             });
@@ -582,13 +610,47 @@ namespace SpaceWar.UI
                 string message = "Creating federation ship at 1,1";
                 Console.WriteLine(message);
                 OnTestSettingChanged?.Invoke(message);
+                
+                // Make sure we're in test mode
+                InTestMode = true;
+                
+                // Make sure ships are visible
+                ShowTestShips = true;
+                
+                // Invoke the event with proper parameters
+                Console.WriteLine("Invoking OnCreateObject event");
                 OnCreateObject?.Invoke("federation", 1, 1, 180);
+            });
+            
+            testMenu.AddButton("Create Klingon Ship", () => {
+                string message = "Creating klingon ship at 3,3";
+                Console.WriteLine(message);
+                OnTestSettingChanged?.Invoke(message);
+                
+                // Make sure we're in test mode
+                InTestMode = true;
+                
+                // Make sure ships are visible
+                ShowTestShips = true;
+                
+                // Invoke the event with proper parameters
+                Console.WriteLine("Invoking OnCreateObject event");
+                OnCreateObject?.Invoke("klingon", 3, 3, 90);
             });
             
             testMenu.AddButton("Move Ship to Bottom Right", () => {
                 string message = "Moving ship to bottom right";
                 Console.WriteLine(message);
                 OnTestSettingChanged?.Invoke(message);
+                
+                // Make sure we're in test mode
+                InTestMode = true;
+                
+                // Make sure ships are visible
+                ShowTestShips = true;
+                
+                // Invoke the event with proper parameters
+                Console.WriteLine("Invoking OnMoveObject event for ship 0 to position 9,9");
                 OnMoveObject?.Invoke(0, 9, 9, 2);
             });
             
@@ -623,16 +685,51 @@ namespace SpaceWar.UI
         }
 
         /// <summary>
-        /// Draws the current menu
+        /// Draws the menu system
         /// </summary>
         /// <param name="spriteBatch">The sprite batch to draw with</param>
-        /// <param name="viewport">The viewport dimensions</param>
-        public void Draw(SpriteBatch spriteBatch, Viewport viewport)
+        public void Draw(SpriteBatch spriteBatch)
         {
-            if (_menus.ContainsKey(_currentMenu))
+            // Draw the current menu
+            if (!string.IsNullOrEmpty(_currentMenu) && _menus.ContainsKey(_currentMenu))
             {
-                _menus[_currentMenu].Draw(spriteBatch, viewport);
+                _menus[_currentMenu].Draw(spriteBatch);
             }
+            
+            // If in test mode, draw the test UI
+            if (InTestMode)
+            {
+                DrawTestUI(spriteBatch);
+            }
+        }
+        
+        /// <summary>
+        /// Draws the test UI
+        /// </summary>
+        private void DrawTestUI(SpriteBatch spriteBatch)
+        {
+            if (_font == null) return;
+            
+            // Draw test status at the bottom of the screen
+            string testInfo = $"Test Mode | Hex Grid: {(ShowHexGrid ? "Visible" : "Hidden")} | Ships: {(ShowTestShips ? "Visible" : "Hidden")}";
+            Vector2 textSize = _font.MeasureString(testInfo);
+            Vector2 position = new Vector2(
+                (_graphicsDevice.Viewport.Width - textSize.X) / 2,
+                _graphicsDevice.Viewport.Height - 50);
+            
+            // Draw with a shadow for better visibility
+            spriteBatch.DrawString(_font, testInfo, position + new Vector2(1, 1), Color.Black * 0.5f);
+            spriteBatch.DrawString(_font, testInfo, position, Color.Blue);
+            
+            // Draw test controls
+            string controlsInfo = "Create/Move/Delete Objects";
+            Vector2 controlsSize = _font.MeasureString(controlsInfo);
+            Vector2 controlsPosition = new Vector2(
+                (_graphicsDevice.Viewport.Width - controlsSize.X) / 2,
+                _graphicsDevice.Viewport.Height - 30);
+            
+            spriteBatch.DrawString(_font, controlsInfo, controlsPosition + new Vector2(1, 1), Color.Black * 0.5f);
+            spriteBatch.DrawString(_font, controlsInfo, controlsPosition, Color.Green);
         }
     }
 } 

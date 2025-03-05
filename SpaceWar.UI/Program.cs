@@ -16,7 +16,7 @@ namespace SpaceWar.UI
             try
             {
                 Console.WriteLine("Creating game instance...");
-                using (var game = new SpaceWarGame())
+                using (var game = new BattleGridTest())
                 {
                     Console.WriteLine("Game instance created. Running game...");
                     game.Run();

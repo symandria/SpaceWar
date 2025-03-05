@@ -11,7 +11,7 @@ namespace SpaceWar.UI
     public class GameObjectViewModel
     {
         // The texture of the game object
-        public Texture2D Texture { get; set; }
+        public Texture2D? Texture { get; set; }
         
         // The position on the hex grid (can be fractional for smooth movement)
         public Vector2 Position { get; set; }
@@ -63,7 +63,14 @@ namespace SpaceWar.UI
             IsMoving = false;
             
             // Set the origin to the center of the texture
-            _origin = new Vector2(texture.Width / 2f, texture.Height / 2f);
+            if (texture != null)
+            {
+                _origin = new Vector2(texture.Width / 2f, texture.Height / 2f);
+            }
+            else
+            {
+                _origin = new Vector2(8, 8); // Default size for fallback textures
+            }
         }
         
         /// <summary>
@@ -76,29 +83,27 @@ namespace SpaceWar.UI
             if (Texture == null) return;
             
             // If _origin hasn't been set yet (e.g., when using the default constructor)
-            if (_origin == Vector2.Zero && Texture != null)
+            if (_origin == Vector2.Zero)
             {
                 _origin = new Vector2(Texture.Width / 2f, Texture.Height / 2f);
             }
             
             // Get the screen position from the hex grid renderer - this returns the center of the hex
-            Vector2 position = hexGridRenderer.HexToScreenCoords((int)Position.Y, (int)Position.X);
+            Vector2 currentHexScreenPos = hexGridRenderer.HexToScreenCoords((int)Position.Y, (int)Position.X);
+            Vector2 targetHexScreenPos = hexGridRenderer.HexToScreenCoords((int)TargetPosition.Y, (int)TargetPosition.X);
             
-            // For smooth movement between hexes, interpolate the position
+            // For smooth movement between hexes, interpolate the position directly in screen space
+            Vector2 position = currentHexScreenPos;
+            
             if (IsMoving)
             {
-                // Get the screen position of the target hex
-                Vector2 targetScreenPos = hexGridRenderer.HexToScreenCoords((int)TargetPosition.Y, (int)TargetPosition.X);
-                
-                // Calculate the fractional part of the position
+                // Calculate the fractional part of the position for interpolation
                 Vector2 fractionalPart = Position - new Vector2((int)Position.X, (int)Position.Y);
                 
-                // Interpolate between the current hex and the next hex
-                Vector2 nextHexPos = hexGridRenderer.HexToScreenCoords((int)Position.Y + Math.Sign(TargetPosition.Y - Position.Y), 
-                                                                      (int)Position.X + Math.Sign(TargetPosition.X - Position.X));
-                
-                // Adjust position based on the fractional part
-                position = Vector2.Lerp(position, nextHexPos, fractionalPart.Length());
+                // Calculate a direct interpolation between current hex and target hex in screen space
+                // This provides smoother movement than trying to interpolate in hex space
+                float progress = fractionalPart.Length();
+                position = Vector2.Lerp(currentHexScreenPos, targetHexScreenPos, progress);
             }
             
             // Calculate a scale factor that makes the object fit within the hex
@@ -120,27 +125,60 @@ namespace SpaceWar.UI
                 SpriteEffects.None,
                 0f
             );
+        }
+        
+        /// <summary>
+        /// Draws debug visualization for the game object
+        /// </summary>
+        /// <param name="spriteBatch">The sprite batch to draw with</param>
+        /// <param name="hexGridRenderer">The hex grid renderer</param>
+        /// <param name="pixelTexture">A 1x1 white pixel texture for drawing lines</param>
+        public void DrawDebugVisualization(SpriteBatch spriteBatch, HexGridRenderer hexGridRenderer, Texture2D pixelTexture)
+        {
+            if (!IsMoving) return;
             
-            // Draw a debug line showing the direction of movement if the object is moving
+            // Get the screen positions
+            Vector2 currentHexScreenPos = hexGridRenderer.HexToScreenCoords((int)Position.Y, (int)Position.X);
+            Vector2 targetHexScreenPos = hexGridRenderer.HexToScreenCoords((int)TargetPosition.Y, (int)TargetPosition.X);
+            
+            // For smooth movement between hexes, interpolate the position directly in screen space
+            Vector2 position = currentHexScreenPos;
+            
             if (IsMoving)
             {
-                // Draw a line from the current position to the target position
-                DrawLine(spriteBatch, position, 
-                         position + new Vector2((float)Math.Cos(Rotation), (float)Math.Sin(Rotation)) * hexSize, 
-                         Color.Yellow * 0.7f, 2);
+                // Calculate the fractional part of the position for interpolation
+                Vector2 fractionalPart = Position - new Vector2((int)Position.X, (int)Position.Y);
+                
+                // Calculate a direct interpolation between current hex and target hex in screen space
+                float progress = fractionalPart.Length();
+                position = Vector2.Lerp(currentHexScreenPos, targetHexScreenPos, progress);
             }
+            
+            // Calculate hex size for visualization
+            float hexSize = 10 * hexGridRenderer.ScaleFactor; // Approximate hex radius in pixels
+            
+            // Draw a line showing the movement direction
+            DrawLine(spriteBatch, pixelTexture, position, 
+                     position + new Vector2((float)Math.Cos(Rotation), (float)Math.Sin(Rotation)) * hexSize, 
+                     Color.Yellow * 0.7f, 2);
+            
+            // Draw a circle at the target position
+            DrawCircle(spriteBatch, pixelTexture, targetHexScreenPos, hexSize * 0.3f, Color.Red * 0.5f);
+            
+            // Draw a line from current position to target position
+            DrawLine(spriteBatch, pixelTexture, position, targetHexScreenPos, Color.Green * 0.3f, 1);
         }
         
         /// <summary>
         /// Draws a line between two points
         /// </summary>
-        private void DrawLine(SpriteBatch spriteBatch, Vector2 start, Vector2 end, Color color, float thickness = 1f)
+        private void DrawLine(SpriteBatch spriteBatch, Texture2D pixelTexture, Vector2 start, Vector2 end, Color color, float thickness = 1f)
         {
             Vector2 edge = end - start;
             float angle = (float)Math.Atan2(edge.Y, edge.X);
             
             spriteBatch.Draw(
-                Texture, // Using the same texture, assuming it's a white pixel texture
+                pixelTexture,
                 start,
                 null,
                 color,
@@ -150,6 +188,28 @@ namespace SpaceWar.UI
                 SpriteEffects.None,
                 0f
             );
+        }
+        
+        /// <summary>
+        /// Draws a circle at the specified position
+        /// </summary>
+        private void DrawCircle(SpriteBatch spriteBatch, Texture2D pixelTexture, Vector2 center, float radius, Color color)
+        {
+            const int segments = 16;
+            Vector2[] points = new Vector2[segments + 1];
+            
+            // Calculate points around the circle
+            for (int i = 0; i <= segments; i++)
+            {
+                float angle = i * MathHelper.TwoPi / segments;
+                points[i] = center + new Vector2((float)Math.Cos(angle), (float)Math.Sin(angle)) * radius;
+            }
+            
+            // Draw lines between the points
+            for (int i = 0; i < segments; i++)
+            {
+                DrawLine(spriteBatch, pixelTexture, points[i], points[i + 1], color, 2);
+            }
         }
     }
 } 
