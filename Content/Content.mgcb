@@ -1,7 +1,7 @@
-#----------------------------- Global Properties ----------------------------#
+﻿#----------------------------- Global Properties ----------------------------#
 
-/outputDir:bin/$(Platform)
-/intermediateDir:obj/$(Platform)
+/outputDir:bin/
+/intermediateDir:obj/
 /platform:Windows
 /config:
 /profile:Reach
@@ -9,9 +9,63 @@
 
 #-------------------------------- References --------------------------------#
 
-/reference:..\..\..\..\..\.nuget\packages\monogame.extended.content.pipeline\3.8.0\tools\MonoGame.Extended.Content.Pipeline.dll
-
 #---------------------------------- Content ---------------------------------#
+
+#begin backgrounds/SpaceWarsLogo.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:GenerateMipmaps=False
+/processorParam:MakeSquare=False
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Color
+/processorParam:ColorKeyEnabled=True
+/processorParam:ColorKeyColor=255,0,255,255
+/build:backgrounds/SpaceWarsLogo.png
+
+#begin backgrounds/splash.png
+/importer:TextureImporter
+/processor:TextureProcessor
+/processorParam:GenerateMipmaps=False
+/processorParam:MakeSquare=False
+/processorParam:ResizeToPowerOfTwo=False
+/processorParam:PremultiplyAlpha=True
+/processorParam:TextureFormat=Color
+/processorParam:ColorKeyEnabled=True
+/processorParam:ColorKeyColor=255,0,255,255
+/build:backgrounds/splash.png
+
+#begin bin/Content/bin/Windows/Content/raw_fonts/Orbitron-Bold.ttf
+/copy:bin/Content/bin/Windows/Content/raw_fonts/Orbitron-Bold.ttf
+
+#begin bin/Content/bin/Windows/Content/raw_fonts/Roboto-Regular.ttf
+/copy:bin/Content/bin/Windows/Content/raw_fonts/Roboto-Regular.ttf
+
+#begin bin/Content/raw_fonts/Orbitron-Bold.ttf
+/copy:bin/Content/raw_fonts/Orbitron-Bold.ttf
+
+#begin bin/Content/raw_fonts/Roboto-Regular.ttf
+/copy:bin/Content/raw_fonts/Roboto-Regular.ttf
+
+#begin bin/Windows/Content/raw_fonts/Orbitron-Bold.ttf
+/copy:bin/Windows/Content/raw_fonts/Orbitron-Bold.ttf
+
+#begin bin/Windows/Content/raw_fonts/Roboto-Regular.ttf
+/copy:bin/Windows/Content/raw_fonts/Roboto-Regular.ttf
+
+#begin fonts/menu.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/processorParam:PremultiplyAlpha=True
+/build:fonts/menu.spritefont
+
+#begin fonts/title.spritefont
+/importer:FontDescriptionImporter
+/processor:FontDescriptionProcessor
+/processorParam:TextureFormat=Compressed
+/processorParam:PremultiplyAlpha=True
+/build:fonts/title.spritefont
 
 #begin raw_fonts/Orbitron-Bold.ttf
 /copy:raw_fonts/Orbitron-Bold.ttf
@@ -19,28 +73,3 @@
 #begin raw_fonts/Roboto-Regular.ttf
 /copy:raw_fonts/Roboto-Regular.ttf
 
-#begin fonts/menu.spritefont
-/importer:FontDescriptionImporter
-/processor:FontDescriptionProcessor
-/processorParam:PremultiplyAlpha=True
-/processorParam:TextureFormat=Compressed
-/build:fonts/menu.spritefont
-
-#begin fonts/title.spritefont
-/importer:FontDescriptionImporter
-/processor:FontDescriptionProcessor
-/processorParam:PremultiplyAlpha=True
-/processorParam:TextureFormat=Compressed
-/build:fonts/title.spritefont
-
-#begin backgrounds/menu.png
-/importer:TextureImporter
-/processor:TextureProcessor
-/processorParam:ColorKeyColor=255,0,255,255
-/processorParam:ColorKeyEnabled=True
-/processorParam:GenerateMipmaps=False
-/processorParam:PremultiplyAlpha=True
-/processorParam:ResizeToPowerOfTwo=False
-/processorParam:MakeSquare=False
-/processorParam:TextureFormat=Color
-/build:backgrounds/menu.png 
