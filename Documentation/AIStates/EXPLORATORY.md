@@ -10,12 +10,29 @@ This state guides the AI in developing components that are difficult to test upf
 - When integrating with external systems
 - When performance or real-time operations are critical
 
+## State Maintenance Protocol
+To maintain this EXPLORATORY state throughout the session, you MUST:
+
+1. **Always begin with a clear specification** of what you're building and verification criteria
+2. **Mark each incremental step** using the state markers below
+3. **Document verification steps** for each increment
+4. **Reflect on lessons learned** after completing each increment
+
+### Required State Markers
+```
+[STATE: EXPLORATORY] Developing {component}
+[STATE: EXPLORATORY] [SPEC] Description of what we're building and verification criteria
+[STATE: EXPLORATORY] [INCREMENT #N] Implementing specific aspect of the component
+[STATE: EXPLORATORY] [VERIFY] How this increment will be verified to work
+[STATE: EXPLORATORY] [REFLECT] Lessons learned from this increment
+```
+
 ## The Exploratory Workflow
 
 ### 1. Define Scope and Specification
 ```
 [STATE: EXPLORATORY] Developing {component}
-[SPEC] Clear description of what we're building and how we'll verify it works
+[STATE: EXPLORATORY] [SPEC] Clear description of what we're building and how we'll verify it works
 ```
 
 - Define clear boundaries of what you're exploring
@@ -53,124 +70,43 @@ This state guides the AI in developing components that are difficult to test upf
 - Identify patterns that could be abstracted
 - Consider how to make similar components more testable
 
-## Best Practices
+## Best Practices for Non-Fragile Exploratory Code
 
-### Code Quality
-- Maintain high code quality standards despite exploratory nature
-- Use meaningful names and consistent patterns
-- Keep methods small and focused
-- Document assumptions and design decisions
+### Component Isolation
+- Create clean boundaries around exploratory components
+- Design explicit interfaces for interaction with other systems
+- Avoid tight coupling with existing code
+- Use composition to make components replaceable
 
-### Risk Mitigation
-- Isolate exploratory code from critical systems when possible
-- Create clean interfaces to exploratory components
-- Add logging and telemetry for runtime verification
-- Consider feature flags to easily disable problematic code
+### Future-Proofing
+- Identify which parts might need automated testing later
+- Extract pure logic from UI/visual components where possible
+- Create abstraction layers for external dependencies
+- Document assumptions and constraints explicitly
 
-### Moving Toward Testability
-- Identify core logic that could be extracted and tested
-- Separate rendering/presentation from business logic
-- Create abstractions for external dependencies
-- Document test gaps for future coverage
+### Progress Toward Testability
+- Gradually move toward more testable code as understanding improves
+- Extract core algorithms from visual/interactive components
+- Create test hooks in hard-to-test components
+- Implement logging for runtime verification
 
-## Examples
-
-### Exploratory UI Component
+## Example (Shortened)
 ```csharp
 [STATE: EXPLORATORY] Developing animated button component
-[SPEC] Button that pulses when hovered and shows particle effect when clicked
-[INCREMENT #1] Basic button rendering with hover detection
+[STATE: EXPLORATORY] [SPEC] Button that pulses when hovered and shows particle effect when clicked
 
-public class AnimatedButton
-{
-    private Texture2D _texture;
-    private Rectangle _bounds;
-    private bool _isHovered;
-    
-    public AnimatedButton(Texture2D texture, Rectangle bounds)
-    {
-        _texture = texture;
-        _bounds = bounds;
-    }
-    
-    public void Update(MouseState mouseState)
-    {
-        var mousePoint = new Point(mouseState.X, mouseState.Y);
-        _isHovered = _bounds.Contains(mousePoint);
-    }
-    
-    public void Draw(SpriteBatch spriteBatch)
-    {
-        var color = _isHovered ? Color.White : Color.Gray;
-        spriteBatch.Draw(_texture, _bounds, color);
-    }
-}
+[STATE: EXPLORATORY] [INCREMENT #1] Basic button rendering with hover detection
+// Implementation code here...
 
-[VERIFY] 
+[STATE: EXPLORATORY] [VERIFY] 
 1. Run the game
 2. Move mouse over button, confirm it changes from gray to white
 3. Move mouse away, confirm it changes back to gray
-```
 
-### Visual Effect
-```csharp
-[STATE: EXPLORATORY] Developing explosion particle effect
-[SPEC] Particle effect that expands from center with particles that fade out
-[INCREMENT #1] Basic particle emission system
-
-public class ExplosionEffect
-{
-    private List<Particle> _particles = new List<Particle>();
-    private Vector2 _position;
-    private Random _random = new Random();
-    
-    public ExplosionEffect(Vector2 position)
-    {
-        _position = position;
-        // Create 50 particles in random directions
-        for (int i = 0; i < 50; i++)
-        {
-            var direction = new Vector2(
-                (float)(_random.NextDouble() * 2 - 1),
-                (float)(_random.NextDouble() * 2 - 1)
-            );
-            direction.Normalize();
-            var speed = (float)(_random.NextDouble() * 100 + 50);
-            var lifetime = (float)(_random.NextDouble() * 0.5 + 0.5);
-            
-            _particles.Add(new Particle(_position, direction, speed, lifetime));
-        }
-    }
-    
-    public bool Update(GameTime gameTime)
-    {
-        float deltaTime = (float)gameTime.ElapsedGameTime.TotalSeconds;
-        foreach (var particle in _particles)
-        {
-            particle.Update(deltaTime);
-        }
-        
-        // Remove dead particles
-        _particles.RemoveAll(p => p.IsDead);
-        
-        // Return false when all particles are dead
-        return _particles.Count > 0;
-    }
-    
-    public void Draw(SpriteBatch spriteBatch)
-    {
-        foreach (var particle in _particles)
-        {
-            particle.Draw(spriteBatch);
-        }
-    }
-}
-
-[VERIFY]
-1. Create explosion at mouse click position
-2. Verify particles spread outward from center
-3. Verify particles fade out over time
-4. Verify effect cleans up after all particles are dead
+[STATE: EXPLORATORY] [REFLECT]
+- Hover detection works well
+- Should extract input handling to make this more testable
+- Will need to handle edge case when resolution changes
 ```
 
 ## Common Pitfalls to Avoid
@@ -191,12 +127,11 @@ When appropriate, transition to:
 - **To DEBUG**: `[TRANSITION: DEBUG]` - When you discover unexpected behavior
 - **To REVIEW**: `[TRANSITION: REVIEW]` - When exploration is complete and needs review
 
-## Reminder Statements
+## Required Discipline Practices
 
-To maintain this state, periodically remind yourself:
-- "I am exploring {specific aspect} with clear verification steps"
-- "Small, verifiable increments with clear documentation"
-- "Separate what can be tested from what must be manually verified"
-- "Document design decisions and verification procedures"
-
-Remember to clearly mark each exploratory increment and verification step to maintain focus and ensure proper development flow. 
+1. **At the start of development**: Explicitly define spec with `[STATE: EXPLORATORY] [SPEC]`
+2. **For each new increment**: Mark with `[STATE: EXPLORATORY] [INCREMENT #N]`
+3. **After implementing an increment**: Provide verification steps with `[STATE: EXPLORATORY] [VERIFY]`
+4. **After verification**: Reflect with `[STATE: EXPLORATORY] [REFLECT]`
+5. **Every 15 minutes**: Remind yourself "I am exploring {specific aspect} with clear verification steps"
+6. **If interrupted**: Re-read this section to realign with EXPLORATORY state 

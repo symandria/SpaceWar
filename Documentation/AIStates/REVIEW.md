@@ -1,268 +1,193 @@
 # AI State: Code Review
 
 ## Purpose
-This state guides the AI in systematically evaluating code for quality, correctness, maintainability, and adherence to best practices. The focus is on providing constructive feedback that improves code quality and identifies potential issues before they cause problems.
+This state guides the AI in systematically evaluating code quality, identifying potential issues, and suggesting improvements. The focus is on ensuring correctness, maintainability, and adherence to project standards.
 
 ## When to Use This State
-- When a feature or component is complete and ready for review
-- When preparing code for integration into the main codebase
-- When evaluating code quality as part of maintenance
-- When onboarding to understand an existing codebase
-- When mentoring or providing feedback to other developers
+- When evaluating existing code for quality and correctness
+- When checking for issues before merging changes
+- When identifying opportunities for improvement
+- When ensuring adherence to project standards
+- When documenting design decisions and trade-offs
+
+## State Maintenance Protocol
+To maintain this REVIEW state throughout the session, you MUST:
+
+1. **Systematically analyze the code** from multiple perspectives
+2. **Mark each review phase** using the state markers below
+3. **Document findings clearly** with specific examples
+4. **Prioritize issues** by severity and impact
+5. **Maintain discipline** by explicitly stating your current focus
+
+### Required State Markers
+```
+[STATE: REVIEW] Reviewing {component/file}
+[STATE: REVIEW] [CORRECTNESS] Evaluation of functional correctness
+[STATE: REVIEW] [STRUCTURE] Evaluation of code organization
+[STATE: REVIEW] [STYLE] Evaluation of code style and standards
+[STATE: REVIEW] [PERFORMANCE] Evaluation of performance considerations
+[STATE: REVIEW] [SECURITY] Evaluation of security considerations
+[STATE: REVIEW] [TESTING] Evaluation of test coverage
+[STATE: REVIEW] [SUMMARY] Summary of findings and recommendations
+```
 
 ## The Code Review Workflow
 
-### 1. Understand Intent and Context
+### 1. Define Review Scope
 ```
-[STATE: REVIEW] Reviewing {component}
-[INTENT] Description of what the code is supposed to accomplish
-```
-
-- Establish what the code is intended to do
-- Identify the requirements or user stories it addresses
-- Understand its place in the larger system
-- Note any constraints or special requirements
-
-### 2. Functional Correctness
-```
-[STATE: REVIEW] [FUNCTION] Assessing functional correctness
+[STATE: REVIEW] Reviewing {component/file}
 ```
 
-- Verify the code does what it's supposed to do
+- Clearly define what code is being reviewed
+- Establish the context and purpose of the code
+- Identify relevant requirements and constraints
+- Note dependencies and interfaces
+
+### 2. Correctness Review
+```
+[STATE: REVIEW] [CORRECTNESS] Evaluation of functional correctness
+```
+
+- Verify logic and algorithm correctness
 - Check for edge cases and error handling
-- Identify missing functionality
-- Note any potential bugs or incorrect assumptions
+- Validate business logic implementation
+- Ensure proper resource management
+- Identify potential bugs or unexpected behaviors
 
-### 3. Code Quality Assessment
+### 3. Structural Review
 ```
-[STATE: REVIEW] [QUALITY] Evaluating code quality
+[STATE: REVIEW] [STRUCTURE] Evaluation of code organization
 ```
 
-- Assess adherence to SOLID principles
-- Check for appropriate patterns and practices
-- Evaluate naming, structure, and organization
-- Identify code smells or anti-patterns
-- Review comments and documentation
+- Evaluate class and method organization
+- Check for proper separation of concerns
+- Assess naming and abstraction quality
+- Identify violations of SOLID principles
+- Evaluate modularity and code reuse
 
-### 4. Performance Review
+### 4. Style Review
 ```
-[STATE: REVIEW] [PERF] Analyzing performance considerations
+[STATE: REVIEW] [STYLE] Evaluation of code style and standards
+```
+
+- Check adherence to project coding standards
+- Evaluate naming conventions
+- Review comment quality and documentation
+- Check formatting consistency
+- Assess readability and maintainability
+
+### 5. Performance Review
+```
+[STATE: REVIEW] [PERFORMANCE] Evaluation of performance considerations
 ```
 
 - Identify potential performance bottlenecks
-- Check resource usage and disposal
-- Evaluate algorithm efficiency
-- Note any concerns about scalability
-- Review concurrent or async code for correctness
+- Check resource usage efficiency
+- Evaluate algorithm complexity
+- Assess memory management
+- Consider scalability implications
 
-### 5. Security Assessment
+### 6. Security Review
 ```
-[STATE: REVIEW] [SECURITY] Checking for security issues
+[STATE: REVIEW] [SECURITY] Evaluation of security considerations
 ```
 
-- Look for input validation issues
-- Check for proper error handling that doesn't expose details
 - Identify potential security vulnerabilities
-- Review authentication and authorization
-- Check for secure data handling
+- Check for proper input validation
+- Evaluate authentication and authorization
+- Assess data protection practices
+- Review error messages for sensitive information
 
-### 6. Testing Adequacy
+### 7. Testing Review
 ```
-[STATE: REVIEW] [TESTS] Evaluating test coverage and quality
-```
-
-- Verify appropriate test coverage
-- Check test quality and relevance
-- Identify missing test cases, especially edge cases
-- Ensure tests are testing behavior, not implementation
-- Review test naming and organization
-
-### 7. Summary and Recommendations
-```
-[STATE: REVIEW] [SUMMARY] Overall assessment and recommendations
+[STATE: REVIEW] [TESTING] Evaluation of test coverage
 ```
 
-- Provide an overall assessment of the code
-- Prioritize issues by importance and risk
-- Offer specific, actionable recommendations
-- Note positive aspects and good practices found
-- Suggest learning resources if appropriate
+- Assess test coverage completeness
+- Evaluate test quality and meaningfulness
+- Check for edge case testing
+- Verify test readability and maintainability
+- Identify untested or undertested areas
 
-## Review Checklist
+### 8. Findings Summary
+```
+[STATE: REVIEW] [SUMMARY] Summary of findings and recommendations
+```
 
-### General
-- Code follows the project's style guide
-- No unnecessary commented-out code
-- Complex logic is well-documented
-- DRY principle is followed
-- Classes and methods have single responsibilities
-- No magic numbers or strings
-- Error messages are clear and helpful
+- Prioritize findings by severity and impact
+- Group related issues together
+- Provide clear, actionable recommendations
+- Recognize positive aspects of the code
+- Suggest next steps based on findings
 
-### MonoGame Specific
-- Resources are properly disposed
-- Game components follow expected lifecycle
-- Content loading is efficient and error-handled
-- Draw and Update methods are optimized
-- Input handling is clean and maintainable
-- State transitions are clear and consistent
+## Best Practices for Effective Code Reviews
 
-### Object-Oriented Design
-- Classes have appropriate visibility
-- Inheritance is used appropriately
-- Interfaces are cohesive and well-defined
-- Dependencies are explicit and minimized
-- Composition is preferred over inheritance when appropriate
+### Systematic Approach
+- Review systematically rather than randomly
+- Use checklists to ensure thoroughness
+- Focus on one aspect at a time
+- Be specific about issues and recommendations
+- Provide context and rationale for feedback
 
-### Game Architecture
-- Game states are well-managed
-- UI components are decoupled from game logic
-- Input handling is separated from business logic
-- Rendering concerns are separated from game state
-- Configuration is external where appropriate
+### Constructive Feedback
+- Focus on the code, not the author
+- Recognize positive aspects
+- Suggest specific improvements
+- Explain the reasoning behind feedback
+- Prioritize issues rather than overwhelming
 
-## Examples
+### Non-Fragile Code Principles
+- Prefer composition over inheritance
+- Look for tight coupling and suggest improvements
+- Evaluate testability of the code design
+- Check for proper abstraction and encapsulation
+- Consider maintainability and future changes
 
-### Method Review
+## Example (Shortened)
 ```csharp
-[STATE: REVIEW] Reviewing UpdatePlayerPosition method
-[FUNCTION] Method updates player position based on input and handles collisions
+[STATE: REVIEW] Reviewing WeaponSystem.cs
 
-public void UpdatePlayerPosition(GameTime gameTime)
-{
-    // Get input direction
-    var direction = new Vector2(0, 0);
-    if (keyboard.IsKeyDown(Keys.A)) direction.X -= 1;
-    if (keyboard.IsKeyDown(Keys.D)) direction.X += 1;
-    if (keyboard.IsKeyDown(Keys.W)) direction.Y -= 1;
-    if (keyboard.IsKeyDown(Keys.S)) direction.Y += 1;
-    
-    // Normalize and apply speed
-    if (direction != Vector2.Zero)
-    {
-        direction.Normalize();
-        direction *= Speed * (float)gameTime.ElapsedGameTime.TotalSeconds;
-        
-        // Update position
-        Position += direction;
-        
-        // Check map bounds
-        Position = new Vector2(
-            MathHelper.Clamp(Position.X, 0, mapWidth),
-            MathHelper.Clamp(Position.Y, 0, mapHeight)
-        );
-    }
-}
+[STATE: REVIEW] [CORRECTNESS]
+- Weapon damage calculation correctly applies critical hit multipliers
+- Edge case: Damage calculation doesn't handle negative defense values properly
+- Error handling is missing when weapon data can't be loaded
 
-[ISSUES]
-1. Direct dependency on keyboard input makes this method harder to test
-2. Collision detection and position update are mixed in the same method
-3. Magic numbers (0, mapWidth, mapHeight) without clear origin
-4. Method handles too many responsibilities
-5. No defensive coding for null gameTime
+[STATE: REVIEW] [STRUCTURE]
+- Single responsibility principle violation: WeaponSystem handles both damage calculation and rendering
+- Recommend extracting DamageCalculator class for better separation of concerns
+- Method "UpdateWeaponState" is too long (75 lines) and should be broken down
 
-[RECOMMENDATIONS]
-1. Extract input handling to separate method/class
-2. Split collision detection into its own method
-3. Make map boundaries explicit parameters or properties
-4. Consider a physics/movement component pattern
-5. Add null check for gameTime parameter
-```
+[STATE: REVIEW] [PERFORMANCE]
+- Recalculating weapon effects every frame even when not changed
+- Suggest caching calculation results until inputs change
 
-### Class Review
-```csharp
-[STATE: REVIEW] Reviewing EnemyManager class
-[FUNCTION] Class manages spawning and tracking of enemies
-
-public class EnemyManager
-{
-    private List<Enemy> enemies = new List<Enemy>();
-    private float spawnTimer = 0f;
-    private Random random = new Random();
-    
-    public void Update(GameTime gameTime)
-    {
-        // Update spawn timer
-        spawnTimer -= (float)gameTime.ElapsedGameTime.TotalSeconds;
-        
-        // Spawn new enemy if timer expired
-        if (spawnTimer <= 0)
-        {
-            SpawnEnemy();
-            spawnTimer = 2f; // Reset timer
-        }
-        
-        // Update all enemies
-        foreach (var enemy in enemies.ToList())
-        {
-            enemy.Update(gameTime);
-            
-            // Remove dead enemies
-            if (!enemy.IsAlive)
-            {
-                enemies.Remove(enemy);
-            }
-        }
-    }
-    
-    private void SpawnEnemy()
-    {
-        var position = new Vector2(
-            random.Next(0, 800),
-            random.Next(0, 600)
-        );
-        
-        enemies.Add(new Enemy(position));
-    }
-    
-    public void Draw(SpriteBatch spriteBatch)
-    {
-        foreach (var enemy in enemies)
-        {
-            enemy.Draw(spriteBatch);
-        }
-    }
-}
-
-[ISSUES]
-1. Hard-coded spawn rate (2f) and screen dimensions (800, 600)
-2. No maximum enemy limit could lead to performance issues
-3. Updating and removing from a collection simultaneously is risky
-4. No way to configure different enemy types or behaviors
-5. Direct dependency on Enemy class hinders extensibility
-
-[RECOMMENDATIONS]
-1. Make spawn rate and boundaries configurable
-2. Add maximum enemy count property
-3. Use ToList() to create a copy before iteration (already done, good!)
-4. Implement enemy factory pattern for different types
-5. Consider using IEnemy interface instead of concrete Enemy class
+[STATE: REVIEW] [SUMMARY]
+- Primary concerns: Missing error handling, SRP violations, performance optimizations
+- Recommend: 1) Add proper error handling, 2) Extract damage calculator, 3) Implement caching
+- Code is well-commented and generally follows naming conventions
 ```
 
 ## Common Pitfalls to Avoid
-
-- **Nitpicking**: Focus on substantial issues, not stylistic preferences
-- **Overwhelming Feedback**: Prioritize issues rather than listing every minor concern
-- **Code Rewriting**: Suggest improvements, don't rewrite the entire solution
-- **Being Too Abstract**: Provide concrete examples of suggested changes
-- **Missing Positive Feedback**: Always note what's done well, not just issues
-- **Ignoring Context**: Consider the constraints and requirements the code operates under
+- **Nitpicking**: Focus on substantial issues over minor preferences
+- **Inconsistent Standards**: Apply the same standards throughout the review
+- **Vague Feedback**: Be specific about problems and solutions
+- **Overlooking Positives**: Acknowledge what works well
+- **Scope Creep**: Stay focused on the code being reviewed
+- **Missing Context**: Consider the code's purpose and constraints
 
 ## Transitioning to Other States
-
 When appropriate, transition to:
 
-- **To REFACTOR**: `[TRANSITION: REFACTOR]` - When review identifies refactoring opportunities
-- **To DEBUG**: `[TRANSITION: DEBUG]` - When review uncovers potential bugs
-- **To TDD**: `[TRANSITION: TDD]` - When review suggests missing functionality requiring tests
+- **To REFACTOR**: `[TRANSITION: REFACTOR]` - When review identifies refactoring needs
+- **To DEBUG**: `[TRANSITION: DEBUG]` - When review uncovers bugs
+- **To TDD**: `[TRANSITION: TDD]` - When review reveals missing functionality
+- **To ARCHITECTURE**: `[TRANSITION: ARCHITECTURE]` - When review suggests architectural changes
 
-## Reminder Statements
+## Required Discipline Practices
 
-To maintain this state, periodically remind yourself:
-- "I am reviewing {component} against established best practices"
-- "Be constructive, specific, and actionable in feedback"
-- "Consider both detailed implementation and broader architecture"
-- "Balance criticism with recognition of good practices"
-- "Focus on knowledge transfer, not just finding issues"
-
-Remember to clearly document review findings in a way that helps improve both the code and the developer's understanding of best practices. 
+1. **At the start of review**: Explicitly define the scope with `[STATE: REVIEW] Reviewing {component/file}`
+2. **For each review aspect**: Mark with appropriate state marker like `[STATE: REVIEW] [CORRECTNESS]`
+3. **After completing the review**: Summarize with `[STATE: REVIEW] [SUMMARY]`
+4. **Every 15 minutes**: Remind yourself "I am reviewing {component/file} systematically"
+5. **If interrupted**: Re-read this section to realign with REVIEW state
+6. **For each finding**: Provide a specific example, explain the issue, and suggest an improvement 

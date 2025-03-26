@@ -1,270 +1,223 @@
 # AI State: Architecture Planning
 
 ## Purpose
-This state guides the AI in designing high-level system architecture before implementation begins. The focus is on establishing a clear, maintainable structure that meets requirements while facilitating future extension and change.
+This state guides the AI in designing high-level system structures, component relationships, and technical foundations. The focus is on creating robust, maintainable, and extensible systems that satisfy both immediate requirements and allow for future growth.
 
 ## When to Use This State
-- At the beginning of a new project or major feature
-- When planning significant refactoring of existing systems
-- When facing design decisions with long-term implications
-- When integration with external systems requires coordination
-- When performance, scalability, or security concerns require architectural consideration
+- When starting a new project or major feature
+- When addressing significant structural problems
+- When integrating multiple subsystems
+- When designing for scalability or extensibility
+- When establishing technical standards and patterns
 
-## The Architecture Planning Workflow
+## State Maintenance Protocol
+To maintain this ARCHITECTURE state throughout the session, you MUST:
 
-### 1. Gather and Clarify Requirements
+1. **Focus on high-level design** rather than implementation details
+2. **Mark each architecture phase** using the state markers below
+3. **Document decisions and their rationales** explicitly
+4. **Consider multiple alternatives** before committing to a design
+5. **Maintain discipline** by explicitly stating your current focus
+
+### Required State Markers
 ```
-[STATE: ARCHITECTURE] Planning architecture for {system/feature}
-[REQUIREMENTS] Detailed description of functional and non-functional requirements
+[STATE: ARCHITECTURE] Designing {system/component}
+[STATE: ARCHITECTURE] [REQUIREMENTS] System requirements and constraints
+[STATE: ARCHITECTURE] [PRINCIPLES] Guiding architectural principles
+[STATE: ARCHITECTURE] [ALTERNATIVES] Alternative approaches considered
+[STATE: ARCHITECTURE] [DECISION] Architecture decision with rationale
+[STATE: ARCHITECTURE] [COMPONENTS] Component breakdown and responsibilities
+[STATE: ARCHITECTURE] [INTERFACES] Key interfaces and contracts
+[STATE: ARCHITECTURE] [RISKS] Architectural risks and mitigations
+[STATE: ARCHITECTURE] [DIAGRAM] Architecture diagram (textual representation)
 ```
 
-- Identify core functional requirements
-- Define non-functional requirements (performance, security, etc.)
-- Clarify constraints and limitations
-- Identify stakeholders and their needs
-- Document assumptions and questions
+## The Architecture Workflow
 
-### 2. Identify System Components
+### 1. Define Requirements and Constraints
 ```
-[STATE: ARCHITECTURE] [COMPONENTS] Core components and their responsibilities
+[STATE: ARCHITECTURE] Designing {system/component}
+[STATE: ARCHITECTURE] [REQUIREMENTS] System requirements and constraints
 ```
 
-- Break down the system into logical components
+- Identify functional requirements
+- Define quality attributes (performance, scalability, etc.)
+- Document technical constraints
+- Clarify business constraints (time, resources, skills)
+- Prioritize requirements and identify trade-offs
+
+### 2. Establish Architectural Principles
+```
+[STATE: ARCHITECTURE] [PRINCIPLES] Guiding architectural principles
+```
+
+- Define key principles guiding the design
+- Identify patterns and approaches to be used
+- Establish terminology and conceptual model
+- Document assumptions about the system context
+- Set boundaries and scope for the architecture
+
+### 3. Explore Alternative Approaches
+```
+[STATE: ARCHITECTURE] [ALTERNATIVES] Alternative approaches considered
+```
+
+- Consider multiple architectural approaches
+- Evaluate each against requirements and principles
+- Document pros and cons of each approach
+- Consider trade-offs between alternatives
+- Assess technical feasibility of each approach
+
+### 4. Make and Document Decisions
+```
+[STATE: ARCHITECTURE] [DECISION] Architecture decision with rationale
+```
+
+- Document each significant decision
+- Explain rationale, connecting to requirements
+- Address rejected alternatives and why
+- Note implications and dependencies of decisions
+- Identify constraints imposed by the decision
+
+### 5. Define Component Structure
+```
+[STATE: ARCHITECTURE] [COMPONENTS] Component breakdown and responsibilities
+```
+
+- Break down the system into key components
 - Define clear responsibilities for each component
-- Identify data ownership and state management
-- Consider separation of concerns
-- Ensure components have high cohesion
+- Establish component ownership and boundaries
+- Document component interactions and dependencies
+- Ensure separation of concerns across components
 
-### 3. Define Component Interfaces
+### 6. Design Key Interfaces
 ```
-[STATE: ARCHITECTURE] [INTERFACES] How components will interact
-```
-
-- Design clean interfaces between components
-- Define data contracts and communication patterns
-- Minimize dependencies between components
-- Establish clear boundaries
-- Consider abstraction levels and dependency direction
-
-### 4. Evaluate Architecture
-```
-[STATE: ARCHITECTURE] [EVALUATION] Assessing the design against quality attributes
+[STATE: ARCHITECTURE] [INTERFACES] Key interfaces and contracts
 ```
 
-- Evaluate against quality attributes (performance, maintainability, etc.)
-- Identify potential bottlenecks or failure points
-- Consider alternative approaches for critical aspects
-- Assess technical risk and mitigation strategies
-- Validate architecture against requirements
+- Define critical interfaces between components
+- Document contracts and protocols
+- Specify data formats and structures
+- Define error handling and exceptional cases
+- Consider versioning and compatibility
 
-### 5. Document Architecture
+### 7. Identify Risks and Mitigations
 ```
-[STATE: ARCHITECTURE] [DOCS] Documentation of architectural decisions
-```
-
-- Create visual representations (diagrams, charts)
-- Document key design decisions and their rationale
-- Detail component interactions and data flow
-- Specify technology choices and justification
-- Create implementation roadmap or phasing plan
-
-## MonoGame-Specific Architectural Considerations
-
-### Game Loop and State Management
-- How game states will be managed and transitioned
-- How the main game loop handles updates and rendering
-- Whether to use a component-based or object-oriented approach
-- How time is managed and distributed to systems
-
-### UI Architecture
-- How UI elements are structured and composed
-- How input is captured and processed
-- How UI state is managed
-- How UI connects to game logic
-
-### Content Management
-- How assets are loaded, cached, and unloaded
-- How content is organized and referenced
-- How to handle asset variants and platforms
-- Content pipeline customization needs
-
-### Entity Management
-- Entity component system vs. traditional OOP
-- How entities are created, updated, and destroyed
-- How systems interact with entities
-- How to handle entity communication
-
-## Architecture Patterns for Games
-
-### Component Pattern
-```csharp
-[STATE: ARCHITECTURE] [COMPONENTS] Component-based game object system
-
-// Base component class
-public abstract class Component
-{
-    public GameObject Owner { get; internal set; }
-    
-    public virtual void Initialize() {}
-    public virtual void Update(GameTime gameTime) {}
-    public virtual void Draw(SpriteBatch spriteBatch) {}
-}
-
-// Game object that hosts components
-public class GameObject
-{
-    private List<Component> components = new List<Component>();
-    
-    public T AddComponent<T>() where T : Component, new()
-    {
-        var component = new T { Owner = this };
-        components.Add(component);
-        component.Initialize();
-        return component;
-    }
-    
-    public T GetComponent<T>() where T : Component
-    {
-        return components.OfType<T>().FirstOrDefault();
-    }
-    
-    public void Update(GameTime gameTime)
-    {
-        foreach (var component in components)
-        {
-            component.Update(gameTime);
-        }
-    }
-    
-    public void Draw(SpriteBatch spriteBatch)
-    {
-        foreach (var component in components)
-        {
-            component.Draw(spriteBatch);
-        }
-    }
-}
-
-// Example usage
-public class Player : GameObject
-{
-    public Player()
-    {
-        AddComponent<MovementComponent>();
-        AddComponent<SpriteComponent>();
-        AddComponent<CollisionComponent>();
-    }
-}
+[STATE: ARCHITECTURE] [RISKS] Architectural risks and mitigations
 ```
 
-### State Pattern
-```csharp
-[STATE: ARCHITECTURE] [COMPONENTS] Game state management pattern
+- Identify technical risks in the architecture
+- Assess impact and likelihood of each risk
+- Define mitigation strategies
+- Propose contingency plans
+- Identify areas requiring prototyping or validation
 
-// State interface
-public interface IGameState
-{
-    void Initialize();
-    void LoadContent();
-    void Update(GameTime gameTime);
-    void Draw(GameTime gameTime);
-    void UnloadContent();
-}
-
-// State manager
-public class GameStateManager
-{
-    private Dictionary<Type, IGameState> states = new Dictionary<Type, IGameState>();
-    private IGameState currentState;
-    
-    public void AddState<T>(T state) where T : IGameState
-    {
-        states[typeof(T)] = state;
-    }
-    
-    public void ChangeState<T>() where T : IGameState
-    {
-        currentState?.UnloadContent();
-        currentState = states[typeof(T)];
-        currentState.Initialize();
-        currentState.LoadContent();
-    }
-    
-    public void Update(GameTime gameTime)
-    {
-        currentState?.Update(gameTime);
-    }
-    
-    public void Draw(GameTime gameTime)
-    {
-        currentState?.Draw(gameTime);
-    }
-}
+### 8. Create Architecture Diagram
+```
+[STATE: ARCHITECTURE] [DIAGRAM] Architecture diagram (textual representation)
 ```
 
-### Service Locator Pattern
-```csharp
-[STATE: ARCHITECTURE] [COMPONENTS] Service locator for game services
+- Create a clear visual representation of the architecture
+- Show key components and their relationships
+- Highlight important interfaces and data flows
+- Include relevant infrastructure elements
+- Document any deployment considerations
 
-// Service locator
-public static class ServiceLocator
-{
-    private static readonly Dictionary<Type, object> services = new Dictionary<Type, object>();
-    
-    public static void RegisterService<T>(T service)
-    {
-        services[typeof(T)] = service;
-    }
-    
-    public static T GetService<T>()
-    {
-        if (services.TryGetValue(typeof(T), out var service))
-        {
-            return (T)service;
-        }
-        
-        throw new InvalidOperationException($"Service of type {typeof(T)} is not registered");
-    }
-}
+## Best Practices for Non-Fragile Architecture
 
-// Example usage
-public interface IAudioService
-{
-    void PlaySound(string soundName);
-}
+### Architectural Principles
+- **Separation of Concerns**: Divide the system into distinct features with minimal overlap
+- **Single Responsibility**: Each component should have one reason to change
+- **Open/Closed**: Systems should be open for extension but closed for modification
+- **Interface Segregation**: Use specific, focused interfaces rather than general ones
+- **Dependency Inversion**: Depend on abstractions, not concrete implementations
 
-// Register service
-ServiceLocator.RegisterService<IAudioService>(new AudioService());
+### Flexible Design Patterns
+- Use dependency injection for flexible component composition
+- Apply the strategy pattern for variable behaviors
+- Consider observer pattern for loose coupling with events
+- Use facade pattern to simplify complex subsystems
+- Implement adapter pattern for integrating with external systems
 
-// Use service anywhere
-ServiceLocator.GetService<IAudioService>().PlaySound("explosion");
+### Future-Proofing Strategies
+- Design for extensibility in known variation points
+- Create clear abstraction layers to isolate changes
+- Minimize coupling between subsystems
+- Use feature flags for gradual rollouts and experimentation
+- Document architectural decisions and their rationales
+
+## Example (Shortened)
+```
+[STATE: ARCHITECTURE] Designing battle system for SpaceWar game
+[STATE: ARCHITECTURE] [REQUIREMENTS]
+- Turn-based combat between two fleets of ships
+- Support for different ship types with unique abilities
+- Dynamic damage calculation based on weapon types and defenses
+- Real-time visual effects during battle resolution
+- Ability to save/load battle state
+
+[STATE: ARCHITECTURE] [PRINCIPLES]
+- Separate battle logic from visual representation
+- Use command pattern for battle actions
+- Implement state pattern for battle phases
+- Abstract ship capabilities through interfaces
+- Use factory pattern for creating ship instances
+
+[STATE: ARCHITECTURE] [ALTERNATIVES]
+1. Monolithic battle system: Simple but less maintainable
+2. Event-driven battle system: Flexible but more complex
+3. Component-based battle system: Extensible but higher initial cost
+
+[STATE: ARCHITECTURE] [DECISION]
+Selected component-based architecture for the battle system:
+- Better supports varied ship types and abilities
+- Allows for independent development of components
+- Provides cleaner separation between logic and visuals
+- Enables easier testing of individual components
+
+[STATE: ARCHITECTURE] [COMPONENTS]
+1. BattleManager: Orchestrates battle flow and state transitions
+2. ShipSystem: Manages ship instances and their capabilities
+3. ActionSystem: Handles creation and execution of battle actions
+4. EffectsSystem: Manages visual effects during battle
+5. BattleSerializer: Handles saving/loading battle state
+
+[STATE: ARCHITECTURE] [INTERFACES]
+1. IShip: Core ship capabilities and properties
+2. IBattleAction: Interface for all actions in battle
+3. IEffectRenderer: Interface for rendering visual effects
+4. IBattleState: Interface for different battle states
+
+[STATE: ARCHITECTURE] [RISKS]
+1. Risk: Performance issues with complex battles
+   Mitigation: Implement object pooling and limit simultaneous effects
+2. Risk: Battle logic complexity becoming unmanageable
+   Mitigation: Extensive unit testing and clear responsibility boundaries
 ```
 
 ## Common Pitfalls to Avoid
-
-- **Over-Engineering**: Don't create complex architectures for simple problems
-- **Premature Optimization**: Focus on clarity first, optimize specific bottlenecks later
-- **Analysis Paralysis**: Don't get stuck in endless planning, use iterative approaches
-- **Ignoring Constraints**: Consider the practical constraints of your platform and team
-- **Rigidity**: Design for change, especially in game development
-- **Not Considering Testing**: Ensure architecture facilitates testing
-- **Not Documenting Rationale**: Document why decisions were made, not just what was decided
+- **Over-engineering**: Adding complexity without clear benefits
+- **Premature Optimization**: Optimizing before understanding requirements
+- **Analysis Paralysis**: Spending too long considering options
+- **Ignoring Constraints**: Designing without considering technical limitations
+- **Ambiguous Responsibilities**: Failing to clearly define component roles
+- **Leaky Abstractions**: Allowing implementation details to leak through interfaces
 
 ## Transitioning to Other States
-
 When appropriate, transition to:
 
-- **To TDD**: `[TRANSITION: TDD]` - When architecture is defined and ready for implementation
-- **To EXPLORATORY**: `[TRANSITION: EXPLORATORY]` - When aspects need proof-of-concept exploration
-- **To REVIEW**: `[TRANSITION: REVIEW]` - When architecture is ready for peer review
+- **To TDD**: `[TRANSITION: TDD]` - When implementing core components
+- **To EXPLORATORY**: `[TRANSITION: EXPLORATORY]` - When testing architectural concepts
+- **To REFACTOR**: `[TRANSITION: REFACTOR]` - When adapting existing code to new architecture
+- **To REVIEW**: `[TRANSITION: REVIEW]` - When evaluating architectural implementations
 
-## Reminder Statements
+## Required Discipline Practices
 
-To maintain this state, periodically remind yourself:
-- "I am designing the architecture for {system} with a focus on maintainability and clarity"
-- "Components should have high cohesion and loose coupling"
-- "Design for change and extension, not just immediate requirements"
-- "Balance between simplicity and flexibility"
-- "Document decisions and their rationale"
-
-Remember to clearly document architectural decisions and create diagrams that help visualize the system structure to facilitate understanding and implementation. 
+1. **At the start of architecture planning**: Explicitly define the scope with `[STATE: ARCHITECTURE] Designing {system/component}`
+2. **Before making decisions**: Document requirements with `[STATE: ARCHITECTURE] [REQUIREMENTS]` and principles with `[STATE: ARCHITECTURE] [PRINCIPLES]`
+3. **When evaluating options**: Document alternatives with `[STATE: ARCHITECTURE] [ALTERNATIVES]`
+4. **When making decisions**: Document with `[STATE: ARCHITECTURE] [DECISION]`
+5. **When defining structure**: Document components with `[STATE: ARCHITECTURE] [COMPONENTS]` and interfaces with `[STATE: ARCHITECTURE] [INTERFACES]`
+6. **Before finalizing**: Document risks with `[STATE: ARCHITECTURE] [RISKS]` and create diagrams with `[STATE: ARCHITECTURE] [DIAGRAM]`
+7. **Every 15 minutes**: Remind yourself "I am designing the architecture for {system/component}, focusing on structure not implementation"
+8. **If interrupted**: Re-read this section to realign with ARCHITECTURE state 

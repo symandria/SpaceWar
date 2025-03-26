@@ -1,219 +1,169 @@
 # AI State: Debugging
 
 ## Purpose
-This state guides the AI in systematically identifying, fixing, and preventing recurrence of bugs through regression tests. The focus is on root cause analysis, minimal effective fixes, and creating tests that will catch similar issues in the future.
+This state guides the AI in systematically identifying, isolating, fixing, and preventing bugs. The focus is on creating regression tests that prevent the same issue from reoccurring in the future.
 
 ## When to Use This State
-- When unexpected behavior is reported or observed
-- When tests are failing
-- When integrating components reveals compatibility issues
-- When performance problems or resource leaks are discovered
-- When visual artifacts or rendering issues occur
+- When encountering unexpected behavior or error messages
+- When code is not producing expected output
+- When investigating performance issues
+- When addressing crash reports
+- When fixing a bug reported by a user or tester
+
+## State Maintenance Protocol
+To maintain this DEBUG state throughout the session, you MUST:
+
+1. **Always reproduce the issue** before attempting to fix it
+2. **Mark each debugging phase** using the state markers below
+3. **Document your findings** at each step
+4. **Create a regression test** to prevent recurrence
+5. **Maintain discipline** by explicitly stating your current phase
+
+### Required State Markers
+```
+[STATE: DEBUG] Investigating {issue/bug}
+[STATE: DEBUG] [REPRODUCE] Steps to reproduce the issue
+[STATE: DEBUG] [HYPOTHESIZE] Potential causes of the issue
+[STATE: DEBUG] [INVESTIGATE] Specific area being investigated
+[STATE: DEBUG] [TEST] Testing potential fix
+[STATE: DEBUG] [FIX] Implementing the solution
+[STATE: DEBUG] [PREVENT] Creating regression test
+```
 
 ## The Debugging Workflow
 
-### 1. Problem Definition
+### 1. Reproduce the Issue
 ```
-[STATE: DEBUG] Debugging {issue description}
-[PROBLEM] Detailed description of the observed issue
-```
-
-- Clearly articulate what's wrong and how it differs from expected behavior
-- Identify the context and conditions where the issue occurs
-- Document any error messages, stack traces, or logs
-- Establish severity and impact
-
-### 2. Reproduction
-```
-[STATE: DEBUG] [REPRO] Steps to reproduce the issue
+[STATE: DEBUG] Investigating {issue description}
+[STATE: DEBUG] [REPRODUCE] Steps to reproduce the issue
 ```
 
-- Create a reliable set of steps to reproduce the issue
-- Note the frequency of reproduction (always, sometimes, rarely)
-- Identify the minimal test case that demonstrates the issue
-- Document environment factors (resolution, input devices, etc.)
+- Define clear steps to reliably reproduce the bug
+- Record the expected vs. actual behavior
+- Identify the specific conditions required
+- Document any relevant error messages or logs
 
-### 3. Root Cause Analysis
+### 2. Form Hypotheses
 ```
-[STATE: DEBUG] [ANALYSIS] Investigation of root cause
-```
-
-- Trace through code execution to identify where behavior diverges
-- Examine state changes and data flow
-- Review similar components for patterns
-- Form a hypothesis about the cause
-- Validate hypothesis through targeted tests or instrumentation
-
-### 4. Fix Implementation
-```
-[STATE: DEBUG] [FIX] Implementation of solution
+[STATE: DEBUG] [HYPOTHESIZE] Potential causes of the issue
 ```
 
-- Implement the minimal change needed to address the root cause
-- Maintain clean code principles even in fixes
-- Document why the fix works
-- Note any trade-offs or potential side effects
+- List possible causes based on observed symptoms
+- Prioritize hypotheses by likelihood
+- Consider edge cases and exceptional conditions
+- Connect symptoms to potential code areas
 
-### 5. Verification
+### 3. Investigate Systematically
 ```
-[STATE: DEBUG] [VERIFY] Verification that the fix resolves the issue
-```
-
-- Verify fix using the established reproduction steps
-- Check for regressions in related functionality
-- Verify fix in various conditions if applicable
-- Note any unexpected behavior, even if not directly related
-
-### 6. Regression Test Creation
-```
-[STATE: DEBUG] [REGRESSION-TEST] Test to prevent this bug from recurring
+[STATE: DEBUG] [INVESTIGATE] Examining {specific area}
 ```
 
-- Create a test that would have caught this bug
-- Ensure the test fails before the fix and passes after
-- Focus on testing the behavior, not the implementation
-- Include edge cases related to the bug
-- Document what the test is checking and why
+- Examine relevant code and data
+- Trace execution paths
+- Check input validation and error handling
+- Review recent changes to the affected area
+- Use debugging tools to gather more information
 
-## Testing Strategies for Different Bug Types
+### 4. Test Potential Fixes
+```
+[STATE: DEBUG] [TEST] Testing {proposed solution}
+```
 
-### Functional Bugs
+- Create isolated tests for the issue
+- Verify that the proposed fix resolves the issue
+- Check for any regression or side effects
+- Document the results of each test
+
+### 5. Implement the Fix
+```
+[STATE: DEBUG] [FIX] Implementing solution for {issue}
+```
+
+- Apply the minimal change needed to fix the issue
+- Maintain code quality and style standards
+- Add appropriate error handling if needed
+- Document the fix with clear comments
+
+### 6. Prevent Recurrence
+```
+[STATE: DEBUG] [PREVENT] Creating regression test for {issue}
+```
+
+- Create automated tests that would have caught this bug
+- Document the root cause and solution
+- Update validation or error handling as needed
+- Consider similar areas where the same issue might occur
+
+## Best Practices for Non-Fragile Bug Fixes
+
+### Systematic Approach
+- Work methodically through the debugging process
+- Avoid making random changes to see what works
+- Document each step of the investigation
+- Validate assumptions with evidence
+
+### Root Cause Analysis
+- Dig beyond symptoms to find underlying causes
+- Consider architectural implications of the bug
+- Look for patterns that might indicate larger issues
+- Fix the cause, not just the symptoms
+
+### Defensive Programming
+- Add appropriate validation and error handling
+- Make code more explicit and less assumption-dependent
+- Improve logging and diagnostics in problematic areas
+- Consider failure modes during development
+
+## Example (Shortened)
 ```csharp
-[STATE: DEBUG] [REGRESSION-TEST] Test for incorrect collision detection
-[TEST]
-[Fact]
-public void WhenObjectsOverlap_CollisionIsDetected()
-{
-    // Arrange
-    var object1 = new GameObject(position: new Vector2(0, 0), size: new Vector2(10, 10));
-    var object2 = new GameObject(position: new Vector2(5, 5), size: new Vector2(10, 10));
-    
-    // Act
-    bool collisionDetected = CollisionDetector.CheckCollision(object1, object2);
-    
-    // Assert
-    Assert.True(collisionDetected, "Collision should be detected when objects overlap");
-}
-```
+[STATE: DEBUG] Investigating game crash when transitioning to battle screen
+[STATE: DEBUG] [REPRODUCE] 
+1. Start new game
+2. Click on "Battle" button
+3. Game crashes with NullReferenceException
 
-### State Management Bugs
-```csharp
-[STATE: DEBUG] [REGRESSION-TEST] Test for improper state transition
-[TEST]
-[Fact]
-public void WhenPauseButtonPressed_GameEntersPausedState()
-{
-    // Arrange
-    var game = new GameState { CurrentState = GameState.Playing };
-    var inputHandler = new InputHandler(game);
-    var mockInput = new MockInput { IsPauseButtonPressed = true };
-    
-    // Act
-    inputHandler.ProcessInput(mockInput);
-    
-    // Assert
-    Assert.Equal(GameState.Paused, game.CurrentState);
-}
-```
+[STATE: DEBUG] [HYPOTHESIZE]
+1. Battle screen resources not properly loaded
+2. Game state not initialized correctly
+3. Race condition in resource loading
 
-### Resource Management Bugs
-```csharp
-[STATE: DEBUG] [REGRESSION-TEST] Test for texture disposal
-[TEST]
-[Fact]
-public void WhenComponentIsDisposed_TexturesAreDisposed()
-{
-    // Arrange
-    var mockTexture = new MockTexture();
-    var component = new GameComponent(mockTexture);
-    
-    // Act
-    component.Dispose();
-    
-    // Assert
-    Assert.True(mockTexture.WasDisposed, "Texture should be disposed when component is disposed");
-}
-```
+[STATE: DEBUG] [INVESTIGATE] Examining battle transition code
+// Findings from code examination
 
-### Timing and Animation Bugs
-```csharp
-[STATE: DEBUG] [REGRESSION-TEST] Test for animation timing
-[TEST]
-[Fact]
-public void WhenAnimationPlays_FramesAdvanceAtCorrectRate()
-{
-    // Arrange
-    var animation = new Animation(frameDuration: 0.1f, frameCount: 5);
-    var gameTime = new MockGameTime();
-    
-    // Act
-    animation.Update(gameTime.AdvanceBy(0.05f)); // Half-frame duration
-    
-    // Assert
-    Assert.Equal(0, animation.CurrentFrame); // Should still be on first frame
-    
-    // Act again
-    animation.Update(gameTime.AdvanceBy(0.05f)); // Another half-frame
-    
-    // Assert
-    Assert.Equal(1, animation.CurrentFrame); // Should advance to second frame
-}
-```
+[STATE: DEBUG] [TEST] Testing initialization sequence fix
+// Test implementation and results
 
-## Debugging Specific MonoGame Issues
+[STATE: DEBUG] [FIX] Implementing proper initialization sequence
+// Fix implementation
 
-### Content Loading
-```csharp
-[STATE: DEBUG] [ANALYSIS] Content loading failure
-// Check the Content project file
-// Verify file paths and asset references
-// Ensure content processor is appropriate for the file type
-// Check for missing files or dependencies
-```
-
-### Rendering
-```csharp
-[STATE: DEBUG] [ANALYSIS] Sprite rendering issue
-// Check SpriteBatch usage (Begin/End pairs)
-// Verify texture is not null
-// Check sprite position, origin, and scale
-// Review blend modes and sampler states
-// Verify cameras and view transformations
-```
-
-### Input
-```csharp
-[STATE: DEBUG] [ANALYSIS] Input handling issue
-// Check input state update sequence
-// Verify input mapping and bindings
-// Check for competing input handlers
-// Verify input is processed in the right game state
+[STATE: DEBUG] [PREVENT] Creating regression test for battle transition
+// Regression test implementation
 ```
 
 ## Common Pitfalls to Avoid
-
-- **Symptom Fixing**: Fixing the symptom rather than the root cause
-- **Hasty Fixes**: Implementing fixes without thorough understanding
-- **Missing Regression Tests**: Failing to create tests that prevent recurrence
-- **Over-Engineering**: Making the fix more complex than necessary
-- **Incomplete Verification**: Not testing the fix thoroughly enough
-- **Unrelated Changes**: Modifying unrelated code during the fix
+- **Fixing Symptoms Only**: Ensure you address the root cause
+- **No Regression Test**: Always create tests to prevent recurrence
+- **Confirmation Bias**: Consider alternative explanations
+- **Random Changes**: Avoid trial-and-error without understanding
+- **Tunnel Vision**: Consider the broader system context
+- **Excessive Complexity**: Prefer simple, clear fixes over complex ones
 
 ## Transitioning to Other States
-
 When appropriate, transition to:
 
-- **To REFACTOR**: `[TRANSITION: REFACTOR]` - When the fix identifies a need for broader refactoring
-- **To TDD**: `[TRANSITION: TDD]` - When new features need to be added as part of the solution
-- **To REVIEW**: `[TRANSITION: REVIEW]` - When the fix is complete and needs review
+- **To REFACTOR**: `[TRANSITION: REFACTOR]` - When the bug reveals design issues
+- **To TDD**: `[TRANSITION: TDD]` - When adding new tests for missing functionality
+- **To REVIEW**: `[TRANSITION: REVIEW]` - When the fix needs evaluation
+- **To EXPLORATORY**: `[TRANSITION: EXPLORATORY]` - When investigating complex issues
 
-## Reminder Statements
+## Required Discipline Practices
 
-To maintain this state, periodically remind yourself:
-- "I am debugging {specific issue} with systematic root cause analysis"
-- "Each bug must have a corresponding regression test"
-- "Fix the root cause, not just the symptoms"
-- "Verify the fix thoroughly to prevent regressions"
-- "Simple, focused fixes are better than complex ones"
-
-Remember to clearly document the bug, reproduction steps, root cause, and fix rationale to facilitate knowledge sharing and prevent similar issues in the future. 
+1. **At the start of debugging**: Explicitly define the issue with `[STATE: DEBUG] Investigating {issue}`
+2. **Before making any changes**: Reproduce the issue with `[STATE: DEBUG] [REPRODUCE]`
+3. **Before exploring code**: List hypotheses with `[STATE: DEBUG] [HYPOTHESIZE]`
+4. **During investigation**: Mark each area with `[STATE: DEBUG] [INVESTIGATE]`
+5. **When testing solutions**: Document with `[STATE: DEBUG] [TEST]`
+6. **When implementing fixes**: Mark with `[STATE: DEBUG] [FIX]`
+7. **After fixing**: Create prevention with `[STATE: DEBUG] [PREVENT]`
+8. **Every 15 minutes**: Remind yourself "I am debugging {specific issue} systematically"
+9. **If interrupted**: Re-read this section to realign with DEBUG state 

@@ -8,6 +8,21 @@ This state guides the AI to develop features using Test-Driven Development, ensu
 - When fixing bugs that can be replicated with a test
 - When extending existing functionality with clear requirements
 
+## State Maintenance Protocol
+To maintain this TDD state throughout the session, you MUST:
+
+1. **Always begin with a failing test** before writing any implementation code
+2. **Mark each phase explicitly** using the state markers below
+3. **Complete each phase fully** before moving to the next
+4. **Remind yourself of the current phase** at least once per phase
+
+### Required State Markers
+```
+[STATE: TDD-RED] Writing failing test for {feature/functionality}
+[STATE: TDD-GREEN] Implementing minimal code to pass test
+[STATE: TDD-REFACTOR] Improving code while maintaining test success
+```
+
 ## The TDD Workflow
 
 ### 1. RED Phase - Write a Failing Test
@@ -58,35 +73,6 @@ This state guides the AI to develop features using Test-Driven Development, ensu
 - Framework code (MonoGame, etc.)
 - Generated code or trivial code (getters/setters)
 
-## Mocking External Dependencies
-
-### For MonoGame
-```csharp
-// Example of mocking GraphicsDevice
-public class MockGraphicsDevice : IGraphicsDeviceService
-{
-    public GraphicsDevice GraphicsDevice => new GraphicsDevice(
-        MockGraphicsAdapter.CreateGraphicsAdapter(), 
-        GraphicsProfile.Reach, 
-        new PresentationParameters());
-}
-```
-
-### For Game Components
-```csharp
-// Example of a test stub for a GameObject
-public class StubGameObject : GameObject
-{
-    public bool UpdateWasCalled { get; private set; }
-    
-    public override void Update(GameTime gameTime)
-    {
-        UpdateWasCalled = true;
-        base.Update(gameTime);
-    }
-}
-```
-
 ## Examples
 
 ### Testing Game Logic
@@ -111,34 +97,6 @@ public void WhenShipMovesForward_PositionChangesInFacingDirection()
 }
 ```
 
-### Testing UI Components
-```csharp
-[STATE: TDD-RED] Writing failing test for button click behavior
-[TEST]
-[Fact]
-public void WhenButtonIsClicked_ThenActionIsTriggered()
-{
-    // Arrange
-    bool actionTriggered = false;
-    var button = new Button(
-        onClick: () => actionTriggered = true,
-        position: new Vector2(10, 10),
-        size: new Vector2(100, 50)
-    );
-    
-    // Act
-    button.HandleInput(new MockInputState
-    {
-        MousePosition = new Vector2(50, 30),
-        IsLeftMouseButtonPressed = true,
-        WasLeftMouseButtonPressed = false
-    });
-    
-    // Assert
-    Assert.True(actionTriggered);
-}
-```
-
 ## Common Pitfalls to Avoid
 
 - **Writing Tests After Implementation**: Defeats the purpose of TDD
@@ -148,6 +106,15 @@ public void WhenButtonIsClicked_ThenActionIsTriggered()
 - **Breaking Test Isolation**: Tests should not depend on each other
 - **Testing Implementation Details**: Focus on behavior, not how it's implemented
 
+## Creating Non-Fragile Code with TDD
+
+- **Interface-Based Design**: Code to interfaces rather than concrete implementations
+- **Dependency Injection**: Pass dependencies rather than creating them internally
+- **Composition Over Inheritance**: Prefer composition for more flexible designs
+- **Single Responsibility**: Each class should have one reason to change
+- **Small, Focused Classes**: Smaller classes are easier to test and maintain
+- **Testable Constraints**: Don't rely on static methods, global state, or time-dependent code
+
 ## Transitioning to Other States
 
 When you encounter an issue that needs a different approach:
@@ -156,12 +123,10 @@ When you encounter an issue that needs a different approach:
 - **To DEBUG**: `[TRANSITION: DEBUG]` - When you discover a bug during development
 - **To REVIEW**: `[TRANSITION: REVIEW]` - When a feature is complete and needs review
 
-## Reminder Statements
+## Required Discipline Practices
 
-To maintain this state, periodically remind yourself:
-- "I am following TDD principles: Red, Green, Refactor"
-- "Tests first, implementation second"
-- "What's the simplest thing that could work?"
-- "Am I testing behavior, not implementation?"
-
-Remember to clearly mark each step of the TDD cycle to maintain focus and ensure proper development flow. 
+1. **After every test definition**: Explicitly mark with `[STATE: TDD-RED]` and verify the test fails
+2. **After implementing passing code**: Explicitly mark with `[STATE: TDD-GREEN]` and verify tests pass
+3. **When refactoring**: Explicitly mark with `[STATE: TDD-REFACTOR]` and verify tests still pass
+4. **Every 15 minutes or after completing a cycle**: Remind yourself "I am following TDD principles: Red, Green, Refactor"
+5. **If interrupted**: Re-read this section to realign with TDD state 
