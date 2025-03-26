@@ -14,6 +14,20 @@ AI states are structured approaches that guide development work with clear proce
 4. **Non-Fragile Code**: Each state emphasizes practices that lead to maintainable, extensible code
 5. **Completion Before Transition**: Complete the current state fully before transitioning
 
+## Avoiding Code Duplication and Inappropriate Reuse
+
+Across all states, maintain awareness of the existing codebase to avoid these common issues:
+
+1. **Search Before Creating**: Before implementing new functionality, thoroughly search the codebase to determine if similar code already exists that could be leveraged or extended.
+
+2. **Verify Appropriate Reuse**: When reusing existing code, ensure it's appropriate for the new use case and won't violate the Single Responsibility Principle by serving multiple purposes.
+
+3. **Balance Concerns**: Weigh the benefits of code reuse against the risks of tight coupling or creating components with multiple reasons to change.
+
+4. **Document Decisions**: Whether creating new code or reusing existing components, document the rationale behind your decision to aid future maintenance.
+
+This balanced approach prevents both unnecessary duplication ("reinventing the wheel") and inappropriate reuse that leads to fragile, tightly coupled code.
+
 ## Available States
 
 - **[TDD.md](TDD.md)**: Test-Driven Development - Writing tests before implementation

@@ -202,6 +202,8 @@ Selected component-based architecture for the battle system:
 - **Ignoring Constraints**: Designing without considering technical limitations
 - **Ambiguous Responsibilities**: Failing to clearly define component roles
 - **Leaky Abstractions**: Allowing implementation details to leak through interfaces
+- **System Duplication**: Designing new subsystems or components without thoroughly investigating existing ones that may serve similar purposes. Always research the current architecture before introducing new elements.
+- **Forced Integration**: Conversely, attempting to adapt existing systems for purposes they weren't designed for. When considering reuse of existing architecture, ensure it's appropriate for the new requirements and won't result in components with conflicting responsibilities.
 
 ## Transitioning to Other States
 When appropriate, transition to:

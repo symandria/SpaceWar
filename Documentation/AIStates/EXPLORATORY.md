@@ -117,6 +117,8 @@ To maintain this EXPLORATORY state throughout the session, you MUST:
 - **Neglecting Structure**: Maintain good architecture even in exploration
 - **Insufficient Manual Testing**: Test thoroughly in various conditions
 - **Skipping Post-Mortem**: Always reflect on what was learned
+- **Reinventing the Wheel**: Creating new code without first checking if similar functionality already exists in the codebase. Even during exploratory programming, search for existing implementations before building something new.
+- **Inappropriate Code Reuse**: Conversely, repurposing existing code for unintended uses. When identifying potential code to reuse, verify that it aligns with your component's needs and won't create unnecessary dependencies or violate separation of concerns.
 
 ## Transitioning to Other States
 

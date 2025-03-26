@@ -105,6 +105,8 @@ public void WhenShipMovesForward_PositionChangesInFacingDirection()
 - **Skipping Refactoring**: Quality matters; clean up your code
 - **Breaking Test Isolation**: Tests should not depend on each other
 - **Testing Implementation Details**: Focus on behavior, not how it's implemented
+- **Reinventing the Wheel**: Creating new code without first searching for existing implementations that serve the same purpose. Always check if the functionality already exists elsewhere in the codebase.
+- **Inappropriate Code Reuse**: Conversely, forcing existing code to serve multiple purposes when it wasn't designed for it. When reusing code, verify that it's designed for your use case and won't create tight coupling or violate the Single Responsibility Principle.
 
 ## Creating Non-Fragile Code with TDD
 
