@@ -128,6 +128,18 @@ When appropriate, transition to:
 - **To REFACTOR**: `[TRANSITION: REFACTOR]` - When the exploratory code works but needs cleanup
 - **To DEBUG**: `[TRANSITION: DEBUG]` - When you discover unexpected behavior
 - **To REVIEW**: `[TRANSITION: REVIEW]` - When exploration is complete and needs review
+- **To CHECKLIST**: `[TRANSITION: CHECKLIST]` - When returning to the main checklist after completing an exploratory subtask
+
+### Integration with Checklist Workflow
+
+The EXPLORATORY state is typically used within the context of the CHECKLIST workflow when implementing visual or interactive subtasks that aren't easily approached with TDD. The workflow looks like:
+
+1. CHECKLIST state breaks down a user requirement into subtasks
+2. For visual/interactive subtasks, transition to EXPLORATORY state
+3. Complete the exploratory implementation with proper verification
+4. Return to CHECKLIST state with `[TRANSITION: CHECKLIST]` to continue with next subtasks or verification
+
+During exploratory implementation, maintain focus on the subtask's specific requirements to avoid scope creep beyond what's specified in the checklist.
 
 ## Required Discipline Practices
 

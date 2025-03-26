@@ -212,6 +212,25 @@ When appropriate, transition to:
 - **To EXPLORATORY**: `[TRANSITION: EXPLORATORY]` - When testing architectural concepts
 - **To REFACTOR**: `[TRANSITION: REFACTOR]` - When adapting existing code to new architecture
 - **To REVIEW**: `[TRANSITION: REVIEW]` - When evaluating architectural implementations
+- **To CHECKLIST**: `[TRANSITION: CHECKLIST]` - When returning to the main checklist after completing architectural design
+
+### Integration with Checklist Workflow
+
+The ARCHITECTURE state is typically used in two contexts with the CHECKLIST workflow:
+
+1. **As a planning phase**:
+   - At the beginning of a checklist or before implementation begins
+   - To design the overall approach for a complex checklist item
+   - To make key design decisions that will guide implementation
+   - Return to CHECKLIST state with `[TRANSITION: CHECKLIST]` when the architecture is defined
+
+2. **As a specific architecture task**:
+   - When a checklist explicitly calls for architectural design
+   - To create or revise system architecture
+   - May result in additional checklist items for implementation
+   - Return to CHECKLIST state after architecture design is complete
+
+During architectural work, be mindful of the scope defined in the checklist to avoid over-engineering or designing features beyond what's specified in the requirements.
 
 ## Required Discipline Practices
 

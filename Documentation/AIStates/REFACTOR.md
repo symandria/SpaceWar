@@ -149,6 +149,24 @@ When appropriate, transition to:
 - **To DEBUG**: `[TRANSITION: DEBUG]` - When refactoring reveals bugs
 - **To REVIEW**: `[TRANSITION: REVIEW]` - When refactoring is complete
 - **To EXPLORATORY**: `[TRANSITION: EXPLORATORY]` - When exploring alternative designs
+- **To CHECKLIST**: `[TRANSITION: CHECKLIST]` - When returning to the main checklist after completing refactoring
+
+### Integration with Checklist Workflow
+
+The REFACTOR state is typically used in two contexts with the CHECKLIST workflow:
+
+1. **As a dedicated checklist item**:
+   - When a checklist explicitly calls for refactoring a component
+   - CHECKLIST state breaks down the refactoring task into subtasks
+   - Complete the full refactoring process with verification
+   - Return to CHECKLIST state with `[TRANSITION: CHECKLIST]` when complete
+
+2. **As part of normal development**:
+   - After implementing functionality using TDD or EXPLORATORY approaches
+   - Refactor the implementation to improve code quality
+   - Return to the original state or CHECKLIST when refactoring is complete
+
+During refactoring, be particularly careful to stay within the scope of the original checklist item to avoid introducing changes beyond what was specified.
 
 ## Required Discipline Practices
 

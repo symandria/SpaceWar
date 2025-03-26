@@ -155,6 +155,24 @@ When appropriate, transition to:
 - **To TDD**: `[TRANSITION: TDD]` - When adding new tests for missing functionality
 - **To REVIEW**: `[TRANSITION: REVIEW]` - When the fix needs evaluation
 - **To EXPLORATORY**: `[TRANSITION: EXPLORATORY]` - When investigating complex issues
+- **To CHECKLIST**: `[TRANSITION: CHECKLIST]` - When returning to the main checklist after fixing a bug
+
+### Integration with Checklist Workflow
+
+The DEBUG state is typically used in two contexts with the CHECKLIST workflow:
+
+1. **As a subtask implementation state**:
+   - When a checklist item specifically involves fixing a known bug
+   - CHECKLIST state breaks down the bug fix into subtasks
+   - Transition to DEBUG state to systematically address the bug
+   - Return to CHECKLIST state with `[TRANSITION: CHECKLIST]` when complete
+
+2. **As an interruption to normal workflow**:
+   - When a bug is discovered during implementation of another checklist item
+   - Temporarily transition to DEBUG state to address the issue
+   - Return to the original state (and checklist item) after fixing
+
+During debugging, maintain awareness of the original checklist scope to ensure that fixes don't introduce unrelated changes beyond what's required.
 
 ## Required Discipline Practices
 

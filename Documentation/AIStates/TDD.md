@@ -124,6 +124,18 @@ When you encounter an issue that needs a different approach:
 - **To EXPLORATORY**: `[TRANSITION: EXPLORATORY]` - When you need to implement something not easily testable
 - **To DEBUG**: `[TRANSITION: DEBUG]` - When you discover a bug during development
 - **To REVIEW**: `[TRANSITION: REVIEW]` - When a feature is complete and needs review
+- **To CHECKLIST**: `[TRANSITION: CHECKLIST]` - When returning to the main checklist after completing a TDD-driven subtask
+
+### Integration with Checklist Workflow
+
+The TDD state is typically used within the context of the CHECKLIST workflow when implementing specific subtasks that benefit from a test-driven approach. The workflow looks like:
+
+1. CHECKLIST state breaks down a user requirement into subtasks
+2. For appropriate subtasks, transition to TDD state
+3. Complete the full TDD cycle (RED-GREEN-REFACTOR)
+4. Return to CHECKLIST state with `[TRANSITION: CHECKLIST]` to continue with next subtasks or verification
+
+During TDD implementation, maintain awareness of the subtask's scope to avoid implementing functionality beyond what's specified in the checklist.
 
 ## Required Discipline Practices
 

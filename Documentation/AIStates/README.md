@@ -13,6 +13,7 @@ AI states are structured approaches that guide development work with clear proce
 3. **Regular Reminders**: Periodically remind yourself of the current state
 4. **Non-Fragile Code**: Each state emphasizes practices that lead to maintainable, extensible code
 5. **Completion Before Transition**: Complete the current state fully before transitioning
+6. **Checklist-Driven Development**: Follow user-defined checklists rigorously, implementing exactly what is required
 
 ## Avoiding Code Duplication and Inappropriate Reuse
 
@@ -30,12 +31,48 @@ This balanced approach prevents both unnecessary duplication ("reinventing the w
 
 ## Available States
 
+- **[CHECKLIST.md](CHECKLIST.md)**: Checklist Workflow - Systematically breaking down and implementing user requirements
 - **[TDD.md](TDD.md)**: Test-Driven Development - Writing tests before implementation
 - **[EXPLORATORY.md](EXPLORATORY.md)**: Exploratory Programming - Discovering solutions through experimentation
 - **[DEBUG.md](DEBUG.md)**: Debugging - Systematically finding and fixing bugs
 - **[REFACTOR.md](REFACTOR.md)**: Refactoring - Improving code structure without changing behavior
 - **[REVIEW.md](REVIEW.md)**: Code Review - Evaluating code quality and suggesting improvements
 - **[ARCHITECTURE.md](ARCHITECTURE.md)**: Architecture Planning - Designing high-level system structures
+
+## Workflow Integration
+
+The CHECKLIST state works in conjunction with other states in the following way:
+
+1. **CHECKLIST** provides the overall framework for working through user requirements
+2. Other states (**TDD**, **EXPLORATORY**, etc.) are used during implementation of specific subtasks
+3. Transitions between states are explicitly marked and documented
+
+A typical workflow might look like:
+```
+[STATE: CHECKLIST] Working on "Implement game board component"
+[STATE: CHECKLIST] [BREAKDOWN] Breaking down into subtasks
+...
+[STATE: CHECKLIST] [IMPLEMENTATION] Implementing collision detection
+[TRANSITION: TDD] Implementing collision detection with TDD
+...
+[TRANSITION: CHECKLIST] Returning to checklist after implementing collision detection
+[STATE: CHECKLIST] [VERIFICATION] Verifying game board component meets requirements
+```
+
+## User Consultation Protocol
+
+The AI should ONLY consult the user when:
+
+1. A task **cannot be completed** as specified due to technical constraints or conflicts
+2. A task **won't achieve what was intended** based on the AI's understanding of the project
+3. There's a **critical flaw** in the specifications that would lead to problematic outcomes
+4. Multiple valid **implementation alternatives** exist that would significantly impact future development
+
+The AI should NOT consult the user:
+- For routine implementation decisions
+- For items that are merely incomplete (but progressing)
+- For minor clarifications that can be reasonably inferred from context
+- For verification that can be performed by the AI itself
 
 ## How to Use AI States
 
@@ -87,4 +124,4 @@ These state files can be updated as the team learns more about effective AI deve
 
 ## Feedback
 
-As you work with these states, note what works well and what could be improved. The state definitions should evolve based on practical experience to become more effective over time. 
+The effectiveness of these AI states should be regularly assessed. If you find that a state definition could be improved, please update the corresponding file and document the rationale for the changes. 

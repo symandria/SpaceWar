@@ -182,6 +182,25 @@ When appropriate, transition to:
 - **To DEBUG**: `[TRANSITION: DEBUG]` - When review uncovers bugs
 - **To TDD**: `[TRANSITION: TDD]` - When review reveals missing functionality
 - **To ARCHITECTURE**: `[TRANSITION: ARCHITECTURE]` - When review suggests architectural changes
+- **To CHECKLIST**: `[TRANSITION: CHECKLIST]` - When returning to the main checklist after completing a review
+
+### Integration with Checklist Workflow
+
+The REVIEW state is typically used in two contexts with the CHECKLIST workflow:
+
+1. **As a verification step**:
+   - After completing implementation of a checklist item
+   - Before marking the item as complete
+   - To ensure the implementation meets requirements and maintains quality
+   - Return to CHECKLIST state with `[TRANSITION: CHECKLIST]` when review is complete
+
+2. **As a dedicated review task**:
+   - When a checklist explicitly calls for code review
+   - To systematically evaluate existing code
+   - May lead to new checklist items for identified issues
+   - Return to CHECKLIST state after completing the review
+
+During review, ensure that any issues identified are documented in the checklist file, particularly noting when they exceed the scope of the current checklist item and should be tracked separately.
 
 ## Required Discipline Practices
 
