@@ -7,6 +7,8 @@ class CollisionSystem:
     def update(self, ships, match_stats, team_game, player, asset_loader):
         for i, ship in enumerate(ships):
             for other in ships[i + 1:]:
+                if ship.phasing_active or other.phasing_active:
+                    continue
                 if (abs(ship.pos[0] - other.pos[0]) < self.PROXIMITY_THRESHOLD and
                         abs(ship.pos[1] - other.pos[1]) < self.PROXIMITY_THRESHOLD):
                     if (ship, other) not in self._active and \

@@ -90,6 +90,7 @@ class PlayerSetup(MenuAction):
              SpendPoints(g, "weapon power")),
             (self._text("player-setup-engine").format(pc["engine"]),
              SpendPoints(g, "engine")),
+            ("View Components", _ViewComponentsFromMenu(g)),
             (self._text("menu-back"), CampaignMenu(g)),
         )
         return g.selection_list
@@ -439,6 +440,12 @@ class SetAIRace(MenuAction):
             self.game.battle_settings[self.num][0], self.race)
         self.game.just_saved = False
         return ChangeAISetting(self.game, self.num)()
+
+
+class _ViewComponentsFromMenu(MenuAction):
+    def __call__(self):
+        from spacewar.menus.component_menu import ViewComponents
+        return ViewComponents(self.game)()
 
 
 class StartBattle(MenuAction):

@@ -156,7 +156,14 @@ class TurnResolver:
 
         if self.move_time == 0:
             self._collision.reset()
+            self._movement.reset()
             self._regeneration.apply_end_of_turn(battle.ships)
+            self._teleportation.tick_cooldowns(battle.ships)
+            for ship in battle.ships:
+                if ship.phasing_cooldown > 0:
+                    ship.phasing_cooldown -= 1
+                ship.phasing_active = False
+                ship.phasing_remaining = 0
             self.dying = self._death.detect_and_cascade(
                 battle.ships, battle.match_stats, battle.team_game)
             if self.dying:

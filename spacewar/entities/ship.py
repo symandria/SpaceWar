@@ -41,6 +41,10 @@ class Ship:
         self.regen = 0
         self.move_target = None
         self.teleport_target = None
+        self.teleport_cooldown = 0
+        self.phasing_active = False
+        self.phasing_remaining = 0
+        self.phasing_cooldown = 0
         self.image = None
 
     @property

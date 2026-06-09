@@ -11,9 +11,12 @@ class AISystem:
                 continue
             ehex = HexGrid.coords_to_hex(enemy.pos)
             if enemy.type == "sentry":
-                enemy.action = "torpedo"
+                enemy.action = "weapon_2"
             else:
-                enemy.action = random.choice((None, "phaser", "torpedo"))
+                choices = [None, "weapon_1", "weapon_2"]
+                if enemy.shields < enemy.max_shields * 0.3:
+                    choices.append("regen_shields")
+                enemy.action = random.choice(choices)
 
             valid_targets = []
             valid_movements = []
@@ -36,10 +39,10 @@ class AISystem:
                                 valid_targets.append((row, col))
                                 break
 
-            if enemy.action and not valid_targets:
+            if enemy.action in ("weapon_1", "weapon_2") and not valid_targets:
                 row = random.randint(1, GRID_ROWS)
                 enemy.target = row, random.randint(1, max_col(row))
-            elif enemy.action:
+            elif enemy.action in ("weapon_1", "weapon_2"):
                 enemy.target = random.choice(valid_targets)
 
             if valid_movements:
@@ -47,7 +50,8 @@ class AISystem:
             else:
                 enemy.movement = ehex
 
-            if (("teleportation" in enemy.specials and not enemy.action) or
-                    "teleportation_always" in enemy.specials) and random.random() > 0.5:
+            has_teleport = (enemy.loadout.has_special("teleportation") and
+                            enemy.teleport_cooldown == 0)
+            if has_teleport and random.random() > 0.5:
                 row = random.randint(1, GRID_ROWS)
                 enemy.movement = row, random.randint(1, max_col(row))
