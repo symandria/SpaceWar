@@ -15,6 +15,7 @@ class MainMenu(MenuAction):
         g.theme_loader.active_races = ()
         return self._make_list(
             self._text("main-menu-title"),
+            ("Roguelike Run", RoguelikeChooseTheme(g)),
             (self._text("menu-new character"), NewCharacterMenu(g)),
             (self._text("menu-load character"), LoadCharacterMenu(g)),
             (self._text("menu-instant action"), InstantActionMenu(g)),
@@ -115,6 +116,49 @@ class InstantActionMenu(MenuAction):
         ]
         return self._make_list(
             self._text("instant-action-choose theme"), *buttons)
+
+
+class RoguelikeChooseTheme(MenuAction):
+    def __call__(self):
+        g = self.game
+        buttons = [
+            (self._text("theme-" + theme), RoguelikeChooseRace(g, theme))
+            for theme in g.theme_loader.themes
+        ]
+        buttons.append((self._text("menu-cancel"), MainMenu(g)))
+        return self._make_list("Choose Theme", *buttons)
+
+
+class RoguelikeChooseRace(MenuAction):
+    def __init__(self, game, theme):
+        super().__init__(game)
+        self.theme = theme
+
+    def __call__(self):
+        g = self.game
+        g.theme_loader.activate_theme(self.theme)
+        g.text_manager.active_theme = self.theme
+        races = g.theme_loader.active_races
+        buttons = [
+            (self._text(race), RoguelikeStartRun(g, race))
+            for race in races
+        ]
+        buttons.append((self._text("menu-cancel"), MainMenu(g)))
+        return self._make_list("Choose Race", *buttons)
+
+
+class RoguelikeStartRun(MenuAction):
+    def __init__(self, game, race):
+        super().__init__(game)
+        self.race = race
+
+    def __call__(self):
+        from spacewar.roguelike.run import Run
+        from spacewar.states.state_machine import StateID
+        g = self.game
+        g.active_run = Run(self.race)
+        g.state_machine.transition_to(StateID.ROGUELIKE_MAP)
+        return None
 
 
 class QuitAction(MenuAction):

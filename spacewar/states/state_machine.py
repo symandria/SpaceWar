@@ -12,6 +12,8 @@ class StateID(Enum):
     TURN_RESOLUTION = auto()
     SPECTATING = auto()
     GAME_OVER = auto()
+    ROGUELIKE_MAP = auto()
+    ROGUELIKE_NODE = auto()
 
 
 class GameState(ABC):

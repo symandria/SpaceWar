@@ -117,6 +117,40 @@ class GameOverState(GameState):
         if g.message_box:
             g.message_box = None
             return None
+
+        if g.active_run:
+            run = g.active_run
+            player_won = any(s == g.battle.home_player for s in g.battle.ships)
+            enemies_killed = sum(
+                1 for s in g.battle.dead_ships
+                if s != g.battle.home_player and s.type != "sentry")
+            player_hull = g.battle.home_player.hull if g.battle.home_player else 0
+            player_shields = g.battle.home_player.shields if g.battle.home_player else 0
+
+            loot = run.apply_battle_results(
+                player_won, enemies_killed, player_hull, player_shields)
+
+            g.battle = None
+            if not run.alive:
+                from spacewar.ui.messagebox import Messagebox
+                g.message_box = Messagebox(
+                    f"DEFEAT\n\nYour ship was destroyed.\n\n"
+                    f"Battles won: {run.battles_won}\n"
+                    f"Total kills: {run.total_kills}\n"
+                    f"Scrap collected: {run.inventory.scrap}",
+                    g.infofont, g.display.get_width(),
+                    g.settings.foreground, g.settings.background)
+                g.active_run = None
+                return StateID.MAIN_MENU
+            elif loot:
+                from spacewar.roguelike.loot import format_loot
+                from spacewar.ui.messagebox import Messagebox
+                g.message_box = Messagebox(
+                    f"Battle Complete!\n\n{format_loot(loot)}",
+                    g.infofont, g.display.get_width(),
+                    g.settings.foreground, g.settings.background)
+            return StateID.ROGUELIKE_MAP
+
         g.battle = None
         if g.instant_action:
             from spacewar.menus.main_menu import MainMenu

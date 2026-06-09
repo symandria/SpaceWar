@@ -32,6 +32,7 @@ from spacewar.states.battle_states import (
 from spacewar.states.resolution_states import (
     TurnResolutionState, SpectatingState, GameOverState,
 )
+from spacewar.states.roguelike_states import RoguelikeMapState, RoguelikeNodeState
 from spacewar.ui.selection_list import SelectionList
 from spacewar.ui.infobox import Infobox
 from spacewar.ui.command_box import CommandBox
@@ -119,6 +120,9 @@ class Game:
         self.battle = None
         self.player_character = None
         self.instant_action = False
+        self.active_run = None
+        self.roguelike_battle_config = None
+        self.roguelike_shop_items = None
         self.just_saved = False
         self.battle_settings = [False, (RANKS[0], "random"), None, None]
         self.num_enemies = 1
@@ -148,6 +152,8 @@ class Game:
         sm.register(StateID.TURN_RESOLUTION, TurnResolutionState(self))
         sm.register(StateID.SPECTATING, SpectatingState(self))
         sm.register(StateID.GAME_OVER, GameOverState(self))
+        sm.register(StateID.ROGUELIKE_MAP, RoguelikeMapState(self))
+        sm.register(StateID.ROGUELIKE_NODE, RoguelikeNodeState(self))
 
     def make_selection_list(self, title, *buttons):
         return SelectionList(
