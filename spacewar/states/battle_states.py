@@ -6,10 +6,25 @@ from spacewar.states.state_machine import GameState, StateID
 
 class BattleIdleState(GameState):
     def handle_event(self, event):
-        if event.type != pygame.MOUSEBUTTONUP:
-            return None
         g = self.game
         b = g.battle
+
+        if event.type == pygame.KEYDOWN:
+            if b.player and event.key == pygame.K_m:
+                b.selected = b.player
+                return StateID.DESTINATION_SELECT
+            elif b.player and event.key == pygame.K_w:
+                if not b.player.action:
+                    b.player.action = "weapon_1"
+                b.selected = b.player
+                return StateID.TARGET_SELECT
+            elif b.player and event.key == pygame.K_RETURN:
+                b.selected = b.player
+                return StateID.COMMAND_ENTRY
+
+        if event.type != pygame.MOUSEBUTTONUP:
+            return None
+
         if g.message_box:
             g.message_box = None
             return None
@@ -61,10 +76,20 @@ class CommandEntryState(GameState):
         g.command_box.update(g.battle.player)
 
     def handle_event(self, event):
-        if event.type != pygame.MOUSEBUTTONUP:
-            return None
         g = self.game
         b = g.battle
+
+        if event.type == pygame.KEYDOWN:
+            if event.key == pygame.K_m:
+                return StateID.DESTINATION_SELECT
+            elif event.key == pygame.K_w:
+                if not b.player.action:
+                    b.player.action = "weapon_1"
+                return StateID.TARGET_SELECT
+
+        if event.type != pygame.MOUSEBUTTONUP:
+            return None
+
         if g.message_box:
             g.message_box = None
             return None
@@ -93,7 +118,7 @@ class CommandEntryState(GameState):
                 g.message_box = Messagebox(
                     g.text_manager.load("invalid-destination"), g.infofont,
                     g.display.get_width(), g.settings.foreground, g.settings.background)
-            elif player.action and player.action != "self-destruct" and not player.target:
+            elif player.action and player.action not in ("self-destruct", "regen_shields", "power_shields") and not player.target:
                 from spacewar.ui.messagebox import Messagebox
                 g.message_box = Messagebox(
                     g.text_manager.load("no-target"), g.infofont,
@@ -121,9 +146,13 @@ class CommandEntryState(GameState):
                 (w1_name.replace("_", " ").title(), action_callback("weapon_1")),
                 (w2_name.replace("_", " ").title(), action_callback("weapon_2")),
                 ("Regen Shields", action_callback("regen_shields")),
+            ]
+            if b.player.active_dr > 0:
+                buttons.append(("Power to Shields", action_callback("power_shields")))
+            buttons.append(
                 (g.text_manager.load("self-destruct"),
                  action_callback("self-destruct")),
-            ]
+            )
             g.selection_list = g.make_selection_list(
                 g.text_manager.load("choose-action"), *buttons)
         return None

@@ -82,6 +82,8 @@ class CommandBox:
             text += f"Fire {wname} {target_str}"
         elif player.action == "regen_shields":
             text += "Regen Shields"
+        elif player.action == "power_shields":
+            text += "Power to Shields"
         elif player.action == "self-destruct":
             text += tm.load("self-destruct")
         self.action_info = self.font.render(text, True, self.foreground)

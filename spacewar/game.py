@@ -38,6 +38,7 @@ from spacewar.ui.command_box import CommandBox
 from spacewar.rendering.viewport import Viewport, VIEWPORT_SIZE
 from spacewar.entities.map_object import Asteroid, NebulaTile
 from spacewar.components.race_configs import build_race_loadout
+from spacewar.systems.visibility import VisibilitySystem
 
 
 class BattleState:
@@ -107,6 +108,7 @@ class Game:
         self.regeneration_system = RegenerationSystem()
         self.death_system = DeathSystem()
         self.scoring_system = ScoringSystem()
+        self.visibility_system = VisibilitySystem()
         self.turn_resolver = TurnResolver(
             self.movement_system, self.collision_system, self.combat_system,
             self.ai_system, self.teleportation_system, self.cloaking_system,
@@ -289,6 +291,25 @@ class Game:
                     battle.nebulae_by_hex[(r, c)] = neb
                     occupied.add((r, c))
 
+    def _render_fog(self, player, view_rect):
+        clear, shaded, fog = self.visibility_system.get_fog_data(player)
+        fog_surface = pygame.Surface(VIEWPORT_SIZE, pygame.SRCALPHA)
+        for hx in shaded:
+            wx, wy = HexGrid.hex_to_coords(*hx)
+            sx = wx - view_rect.left
+            sy = wy - view_rect.top
+            if -10 < sx < VIEWPORT_SIZE[0] + 10 and -10 < sy < VIEWPORT_SIZE[1] + 10:
+                fog_surface.fill((0, 0, 0, 100),
+                                 (sx - 1, sy - 1, 11, 11))
+        for hx in fog:
+            wx, wy = HexGrid.hex_to_coords(*hx)
+            sx = wx - view_rect.left
+            sy = wy - view_rect.top
+            if -10 < sx < VIEWPORT_SIZE[0] + 10 and -10 < sy < VIEWPORT_SIZE[1] + 10:
+                fog_surface.fill((0, 0, 0, 200),
+                                 (sx - 1, sy - 1, 11, 11))
+        self.screen.blit(fog_surface, (0, 0))
+
     def render_battle(self, draw_phasers=None, show_invalid_destinations=False):
         if draw_phasers is None:
             draw_phasers = []
@@ -358,6 +379,9 @@ class Game:
         view_rect = self.viewport.get_view_rect()
         self.screen.blit(ws, (0, 0), view_rect)
 
+        if b.player and move_time == 0:
+            self._render_fog(b.player, view_rect)
+
         if b.player:
             titlebar = f"H:{b.player.hull} S:{b.player.shields} Spd:{b.player.speed}"
         else:
@@ -379,10 +403,14 @@ class Game:
                     self.settings.foreground, self.settings.background,
                     self.text_manager, is_ally=is_ally)
             ib = self.infobox
-            ib.rect.left *= self.settings.window_multiplier
-            ib.rect.top *= self.settings.window_multiplier
+            screen_pos = self.viewport.world_to_screen(
+                (int(b.info_target.pos[0]) + 10, int(b.info_target.pos[1])))
+            ib.rect.left = int(screen_pos[0]) * self.settings.window_multiplier
+            ib.rect.top = int(screen_pos[1]) * self.settings.window_multiplier
             if ib.rect.right > self.settings.window_size[0]:
-                ib.rect.right = (int(b.info_target.pos[0]) - 1) * self.settings.window_multiplier
+                alt_x = self.viewport.world_to_screen(
+                    (int(b.info_target.pos[0]) - 1, 0))[0]
+                ib.rect.right = int(alt_x) * self.settings.window_multiplier
             if ib.rect.bottom > self.settings.window_size[1]:
                 ib.rect.bottom = self.settings.window_size[1]
             ib.render(self.display)

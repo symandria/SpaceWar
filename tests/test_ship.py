@@ -79,15 +79,21 @@ class TestDamageSystem:
         cloaking_ship.apply_damage(30)
         assert cloaking_ship.shields == 40  # 30*2=60 damage
 
-    def test_dr_reduces_damage_when_no_action(self, ablative_ship):
-        ablative_ship.action = None
+    def test_dr_reduces_damage_with_power_shields(self, ablative_ship):
+        ablative_ship.action = "power_shields"
         ablative_ship.apply_damage(100)
         # DR 50%: 100 * (100-50)/100 = 50 damage
         assert ablative_ship.shields == 50
         assert ablative_ship.hull == 50
 
     def test_dr_inactive_when_attacking(self, ablative_ship):
-        ablative_ship.action = "phaser"
+        ablative_ship.action = "weapon_1"
+        ablative_ship.apply_damage(100)
+        assert ablative_ship.shields == 0
+        assert ablative_ship.hull == 50
+
+    def test_dr_inactive_when_no_action(self, ablative_ship):
+        ablative_ship.action = None
         ablative_ship.apply_damage(100)
         assert ablative_ship.shields == 0
         assert ablative_ship.hull == 50

@@ -168,7 +168,7 @@ class Ship:
     def apply_damage(self, amount):
         if self.cloaked:
             amount *= 2
-        if self.active_dr > 0 and not self.action:
+        if self.active_dr > 0 and self.action == "power_shields":
             amount = int(amount * (100 - self.active_dr) / 100)
         shield_damage = min(amount, max(self.shields, 0))
         self.shields -= shield_damage
