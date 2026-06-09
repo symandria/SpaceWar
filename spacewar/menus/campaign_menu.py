@@ -1,5 +1,7 @@
 from spacewar.config.constants import RANKS, RANK_XP, STATS
 from spacewar.menus.menu_actions import MenuAction
+from spacewar.components.race_configs import build_race_loadout
+from spacewar.components.base import ComponentSlot
 
 
 class CampaignMenu(MenuAction):
@@ -9,6 +11,7 @@ class CampaignMenu(MenuAction):
             self._text("menu-campaign-title").format(**g.player_character),
             (self._text("menu-battle-setup"), BattleSetup(g)),
             (self._text("menu-player-setup"), PlayerSetup(g)),
+            ("Ship Overview", ShipOverview(g)),
             (self._text("menu-view-statistics"), ViewStatistics(g)),
             (self._text("menu-save-character"), SaveCharacter(g)),
             (self._text("menu-return-main menu"),
@@ -73,6 +76,9 @@ class PlayerSetup(MenuAction):
         race_display = self._text(
             pc["race"] if pc["race"] in races
             else "special-option-" + pc["race"])
+
+        bonus_text = f"Bonus Points: {pc['bonus']}"
+
         g.selection_list = self._make_list(
             self._text("player-setup-title").format(
                 formatted_rank=self._text("rank-" + pc["rank"]), **pc),
@@ -82,18 +88,154 @@ class PlayerSetup(MenuAction):
              ChangeNameAction(g, "ship", "player-setup-change ship")),
             (self._text("player-setup-race").format(race_display),
              ChangeRace(g)),
-            (self._text("player-setup-shields").format(pc["shields"]),
-             SpendPoints(g, "shields")),
-            (self._text("player-setup-phasers").format(pc["weapon power"] * 6),
-             SpendPoints(g, "weapon power")),
-            (self._text("player-setup-torpedo").format(pc["weapon power"] * 9),
-             SpendPoints(g, "weapon power")),
-            (self._text("player-setup-engine").format(pc["engine"]),
-             SpendPoints(g, "engine")),
-            ("View Components", _ViewComponentsFromMenu(g)),
+            (f"Shields: {pc['shields']}", SpendPoints(g, "shields")),
+            (f"Weapon Power: {pc['weapon power']}", SpendPoints(g, "weapon power")),
+            (f"Engine: {pc['engine']}", SpendPoints(g, "engine")),
+            (bonus_text, PlayerSetup(g)),
             (self._text("menu-back"), CampaignMenu(g)),
         )
         return g.selection_list
+
+
+class ShipOverview(MenuAction):
+    def __call__(self):
+        g = self.game
+        pc = g.player_character
+        race = pc["race"]
+        races = g.theme_loader.active_races
+        specials_map = g.theme_loader.get_special_options()
+        if race in specials_map and isinstance(specials_map[race], (list, tuple)):
+            race = specials_map[race][0]
+
+        loadout = build_race_loadout(race)
+
+        lines = [f"Race: {race.title()}"]
+        lines.append(f"Shields: {pc['shields']} | Hull: {loadout.get_stat(ComponentSlot.HULL, 'strength', 50)}")
+        lines.append(f"Weapon Power: {pc['weapon power']}")
+        lines.append(f"Engine: {pc['engine']} (Max Speed)")
+
+        eng = loadout.get_component(ComponentSlot.ENGINE)
+        if eng:
+            lines.append(f"  Acceleration: {eng.get('acceleration', 2)}")
+            lines.append(f"  Turning: {eng.get('turning_degrees', 90)} deg")
+
+        sens = loadout.get_component(ComponentSlot.SENSORS)
+        if sens:
+            lines.append(f"Sensors: {sens.get('vision_forward', 10)}F / {sens.get('vision_backward', 5)}R")
+            cd = sens.get('cloak_detection', 0)
+            if cd > 0:
+                lines.append(f"  Cloak Detection: {cd}")
+
+        sh = loadout.get_component(ComponentSlot.SHIELDS)
+        if sh:
+            lines.append(f"Passive Regen: {sh.get('passive_regen', 5)}/turn")
+            dr = sh.get('active_dr', 0)
+            if dr > 0:
+                lines.append(f"Active DR: {dr}%")
+
+        st = loadout.get_component(ComponentSlot.STEALTH)
+        if st and st.get('active_cloak'):
+            lines.append("Cloaking: Yes")
+
+        title = "\n".join(lines)
+        return self._make_list(
+            title,
+            ("Weapons", ViewWeapons(g, race)),
+            ("Components", ViewComponentsFromCampaign(g, race)),
+            (self._text("menu-back"), CampaignMenu(g)),
+        )
+
+
+class ViewWeapons(MenuAction):
+    def __init__(self, game, race):
+        super().__init__(game)
+        self.race = race
+
+    def __call__(self):
+        g = self.game
+        loadout = build_race_loadout(self.race)
+        wp = g.player_character["weapon power"]
+
+        lines = [f"Weapons (WP: {wp})"]
+        for slot_num, slot in [(1, ComponentSlot.WEAPON_1), (2, ComponentSlot.WEAPON_2)]:
+            comp = loadout.get_component(slot)
+            if comp:
+                wtype = comp.get("weapon_type", "unknown")
+                wrange = comp.get("weapon_range", 15)
+                from spacewar.systems.weapons import WeaponType, WEAPON_STATS
+                try:
+                    wt = WeaponType(wtype)
+                    stats = WEAPON_STATS[wt]
+                    dmg = stats["damage_per_hit"](wp) * stats["hits"]
+                    name = stats["display_name"]
+                    lines.append(f"  Slot {slot_num}: {name}")
+                    lines.append(f"    Damage: {dmg} | Range: {wrange}")
+                except (ValueError, KeyError):
+                    lines.append(f"  Slot {slot_num}: {wtype.title()}")
+
+        special = loadout.get_component(ComponentSlot.SPECIAL)
+        if special and special.get("ability_type"):
+            atype = special.get("ability_type")
+            lines.append(f"\nSpecial: {special.name}")
+            if atype == "teleportation":
+                lines.append(f"  Range: {special.get('teleport_range', 10)}")
+                lines.append(f"  Recharge: {special.get('recharge', 3)} turns")
+
+        title = "\n".join(lines)
+        return self._make_list(title, (self._text("menu-back"), ShipOverview(g)))
+
+
+class ViewComponentsFromCampaign(MenuAction):
+    def __init__(self, game, race):
+        super().__init__(game)
+        self.race = race
+
+    def __call__(self):
+        g = self.game
+        loadout = build_race_loadout(self.race)
+
+        from spacewar.menus.component_menu import SLOT_ORDER, SLOT_LABELS
+        buttons = []
+        for slot in SLOT_ORDER:
+            comp = loadout.get_component(slot)
+            label = SLOT_LABELS.get(slot, slot.value)
+            if comp:
+                buttons.append((f"{label}: {comp.name}", ViewSlotFromCampaign(g, self.race, slot)))
+            else:
+                buttons.append((f"{label}: Empty", ViewComponentsFromCampaign(g, self.race)))
+
+        power_text = f"Power: {loadout.total_power_cost()}/{loadout.power_budget()}"
+        buttons.append((power_text, ViewComponentsFromCampaign(g, self.race)))
+        buttons.append(("Back", ShipOverview(g)))
+        return self._make_list("Components", *buttons)
+
+
+class ViewSlotFromCampaign(MenuAction):
+    def __init__(self, game, race, slot):
+        super().__init__(game)
+        self.race = race
+        self.slot = slot
+
+    def __call__(self):
+        g = self.game
+        loadout = build_race_loadout(self.race)
+        comp = loadout.get_component(self.slot)
+        from spacewar.menus.component_menu import SLOT_LABELS
+        label = SLOT_LABELS.get(self.slot, self.slot.value)
+
+        if not comp:
+            return self._make_list(f"{label}: Empty",
+                                   ("Back", ViewComponentsFromCampaign(g, self.race)))
+
+        lines = [f"{label}: {comp.name}", f"Power Cost: {comp.power_cost}"]
+        for key, value in comp.stats.items():
+            display_key = key.replace("_", " ").title()
+            if callable(value):
+                continue
+            lines.append(f"  {display_key}: {value}")
+
+        title = "\n".join(lines)
+        return self._make_list(title, ("Back", ViewComponentsFromCampaign(g, self.race)))
 
 
 class ChangeNameAction(MenuAction):
@@ -163,8 +305,10 @@ class SpendPoints(MenuAction):
                 DecreaseStat(g, self.stat),
             ))
         buttons.append((self._text("menu-return-player setup"), PlayerSetup(g)))
+
+        stat_label = self.stat.title()
         return self._make_list(
-            "{0}: {1!r}".format(self._text("stat-" + self.stat), pc[self.stat]),
+            f"{stat_label}: {pc[self.stat]}  (Bonus: {pc['bonus']})",
             *buttons,
         )
 

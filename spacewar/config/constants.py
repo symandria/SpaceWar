@@ -69,7 +69,7 @@ for i, rank in enumerate(RANKS[:-1]):
 
 STATS = {
     "shields": {
-        "min": 150,
+        "min": 100,
         "max": 2000,
         "step": 15,
     },

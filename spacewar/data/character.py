@@ -23,7 +23,7 @@ class CharacterManager:
             ("rank", RANKS[0]),
             ("xp", 0),
             ("bonus", 0),
-            ("shields", 150),
+            ("shields", 100),
             ("weapon power", 5),
             ("engine", 5),
             ("games played", 0),

@@ -26,6 +26,31 @@ SLOT_LABELS = {
     ComponentSlot.POWER_SOURCE: "Power",
 }
 
+STAT_DISPLAY = {
+    "max_speed": "Max Speed",
+    "acceleration": "Acceleration",
+    "turning_degrees": "Turning",
+    "maneuvering_points": "Maneuver Pts",
+    "vision_forward": "Vision (Fwd)",
+    "vision_backward": "Vision (Rear)",
+    "cloak_detection": "Cloak Detect",
+    "strength": "Strength",
+    "passive_regen": "Passive Regen",
+    "active_regen_mult": "Active Regen",
+    "active_dr": "Damage Reduce %",
+    "collision_damage": "Ram Damage",
+    "weapon_type": "Type",
+    "weapon_range": "Range",
+    "passive_stealth": "Stealth",
+    "active_cloak": "Cloaking",
+    "power_provided": "Power Output",
+    "ability_type": "Ability",
+    "teleport_range": "Teleport Range",
+    "recharge": "Recharge (turns)",
+    "duration": "Duration (hexes)",
+    "damage_multiplier": "Damage Mult",
+}
+
 
 class ViewComponents(MenuAction):
     def __call__(self):
@@ -40,11 +65,9 @@ class ViewComponents(MenuAction):
             comp = loadout.get_component(slot)
             label = SLOT_LABELS.get(slot, slot.value)
             if comp:
-                name = comp.name
-                text = f"{label}: {name}"
+                buttons.append((f"{label}: {comp.name}", ViewSlotDetail(g, slot)))
             else:
-                text = f"{label}: Empty"
-            buttons.append((text, ViewSlotDetail(g, slot)))
+                buttons.append((f"{label}: Empty", _back(g)))
 
         power_text = f"Power: {loadout.total_power_cost()}/{loadout.power_budget()}"
         buttons.append((power_text, _back(g)))
@@ -68,10 +91,13 @@ class ViewSlotDetail(MenuAction):
         if not comp:
             return self._make_list(f"{label}: Empty", ("Back", ViewComponents(g)))
 
-        lines = [f"{label}: {comp.name}"]
-        lines.append(f"Power Cost: {comp.power_cost}")
+        lines = [f"{label}: {comp.name}", f"Power Cost: {comp.power_cost}"]
         for key, value in comp.stats.items():
-            display_key = key.replace("_", " ").title()
+            if callable(value):
+                continue
+            display_key = STAT_DISPLAY.get(key, key.replace("_", " ").title())
+            if isinstance(value, bool):
+                value = "Yes" if value else "No"
             lines.append(f"  {display_key}: {value}")
 
         title = "\n".join(lines)
