@@ -12,8 +12,8 @@ class VisibilitySystem:
         facing_rad = math.radians(90 - ship.angle)
         forward_clear = ship.vision_forward
         backward_clear = ship.vision_backward
-        forward_shaded = forward_clear + 3
-        backward_shaded = backward_clear + 3
+        forward_shaded = math.ceil(forward_clear * 1.3)
+        backward_shaded = math.ceil(backward_clear * 1.3)
 
         clear = set()
         shaded = set()
