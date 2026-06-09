@@ -34,17 +34,27 @@ class RoguelikeMapState(GameState):
         run = g.active_run
         available = run.sector_map.get_available_nodes()
 
+        NODE_DESCRIPTIONS = {
+            NodeType.BATTLE: "Combat encounter",
+            NodeType.ELITE: "Tough fight, better loot",
+            NodeType.SHOP: "Buy parts and repairs",
+            NodeType.SALVAGE: "Search wreckage for parts",
+            NodeType.REST: "Recover hull and shields",
+            NodeType.EVENT: "Unknown signal detected",
+            NodeType.BOSS: "BOSS - Tier guardian",
+        }
         buttons = []
         for node in available:
             icon = NODE_ICONS.get(node.node_type, "?")
-            label = f"[{icon}] {node.node_type.value.title()}"
+            desc = NODE_DESCRIPTIONS.get(node.node_type, "")
+            label = f"[{icon}] {node.node_type.value.title()} - {desc}"
             if node.completed:
-                label += " (done)"
+                label = f"[{icon}] {node.node_type.value.title()} (done)"
             buttons.append((label, _NodeAction(g, node)))
 
-        buttons.append(("View Ship", _ViewShipAction(g)))
+        buttons.append(("--- Ship ---", _ViewShipAction(g)))
         buttons.append(("Inventory", _InventoryAction(g)))
-        buttons.append(("Upgrade", _UpgradeMenuAction(g)))
+        buttons.append(("Upgrades", _UpgradeMenuAction(g)))
         buttons.append(("Abandon Run", _AbandonAction(g)))
 
         g.selection_list = g.make_selection_list(
@@ -193,20 +203,48 @@ class _ViewShipAction(_MenuActionBase):
         g = self.game
         run = g.active_run
         from spacewar.components.base import ComponentSlot
-        from spacewar.menus.component_menu import SLOT_ORDER, SLOT_LABELS
+        from spacewar.systems.weapons import WeaponType, WEAPON_STATS
 
-        lines = [f"Race: {run.race.title()}"]
-        lines.append(f"Hull: {run.hull}/{run.max_hull}")
-        lines.append(f"Shields: {run.shields}/{run.max_shields}")
-        lines.append(f"WP: {run.weapon_power}")
+        lines = [f"=== {run.race.title()} ==="]
+        lines.append(f"Hull: {run.hull}/{run.max_hull}  "
+                     f"Shields: {run.shields}/{run.max_shields}")
+        lines.append(f"Weapon Power: {run.weapon_power}")
 
-        for slot in SLOT_ORDER:
+        eng = run.loadout.get_component(ComponentSlot.ENGINE)
+        if eng:
+            lines.append(f"Engine: Spd {eng.get('max_speed',5)} "
+                        f"Accel {eng.get('acceleration',2)} "
+                        f"Turn {eng.get('turning_degrees',90)}deg")
+
+        sens = run.loadout.get_component(ComponentSlot.SENSORS)
+        if sens:
+            lines.append(f"Sensors: {sens.get('vision_forward',10)}F "
+                        f"/ {sens.get('vision_backward',5)}R")
+
+        for slot_num, slot in [(1, ComponentSlot.WEAPON_1), (2, ComponentSlot.WEAPON_2)]:
             comp = run.loadout.get_component(slot)
-            label = SLOT_LABELS.get(slot, slot.value)
             if comp:
+                wtype_str = comp.get("weapon_type", "?")
+                try:
+                    wt = WeaponType(wtype_str)
+                    stats = WEAPON_STATS[wt]
+                    dmg = stats["damage_per_hit"](run.weapon_power) * stats["hits"]
+                    name = stats["display_name"]
+                except (ValueError, KeyError):
+                    name = wtype_str.replace("_", " ").title()
+                    dmg = "?"
                 lvl = getattr(comp, 'upgrade_level', 0)
-                lvl_str = f" +{lvl}" if lvl > 0 else ""
-                lines.append(f"  {label}: {comp.name}{lvl_str}")
+                lvl_str = f"+{lvl}" if lvl > 0 else ""
+                lines.append(f"W{slot_num}: {name}{lvl_str} "
+                            f"dmg:{dmg} rng:{comp.get('weapon_range',0)}")
+
+        special = run.loadout.get_component(ComponentSlot.SPECIAL)
+        if special and special.get("ability_type"):
+            lines.append(f"Special: {special.name}")
+
+        stealth = run.loadout.get_component(ComponentSlot.STEALTH)
+        if stealth and stealth.get("active_cloak"):
+            lines.append("Cloaking: Active")
 
         title = "\n".join(lines)
         return self._make_list(title, ("Back", _BackToMap(g)))
@@ -218,19 +256,29 @@ class _InventoryAction(_MenuActionBase):
         run = g.active_run
         inv = run.inventory
 
-        lines = [f"Scrap: {inv.scrap}"]
-        for mat, amount in inv.materials.items():
-            lines.append(f"{mat.title()}: {amount}")
-        lines.append(f"\nComponents: {len(inv.components)}")
-        for comp in inv.components[:8]:
-            lines.append(f"  {comp.name} ({comp.slot.value})")
-        if len(inv.components) > 8:
-            lines.append(f"  ...and {len(inv.components) - 8} more")
+        lines = [f"=== Inventory ==="]
+        lines.append(f"Scrap: {inv.scrap}")
+        mat_parts = [f"{v} {k}" for k, v in inv.materials.items() if v > 0]
+        if mat_parts:
+            lines.append(" | ".join(mat_parts))
+        else:
+            lines.append("No materials")
+        lines.append(f"\nStored Parts: {len(inv.components)}")
+
+        slots = {}
+        for comp in inv.components:
+            slot_name = comp.slot.value.replace("_", " ").title()
+            if slot_name not in slots:
+                slots[slot_name] = []
+            slots[slot_name].append(comp.name)
+        for slot_name, names in slots.items():
+            lines.append(f"  {slot_name}: {', '.join(names)}")
 
         title = "\n".join(lines)
-        buttons = [("Back", _BackToMap(g))]
+        buttons = []
         if inv.components:
-            buttons.insert(0, ("Equip Component", _EquipMenuAction(g)))
+            buttons.append(("Equip Component", _EquipMenuAction(g)))
+        buttons.append(("Back", _BackToMap(g)))
         return self._make_list(title, *buttons)
 
 
@@ -241,7 +289,9 @@ class _EquipMenuAction(_MenuActionBase):
         buttons = []
         for comp in run.inventory.components:
             slot_name = comp.slot.value.replace("_", " ").title()
-            label = f"{comp.name} [{slot_name}]"
+            current = run.loadout.get_component(comp.slot)
+            current_name = current.name if current else "Empty"
+            label = f"{comp.name} [{slot_name}] (replaces: {current_name})"
             buttons.append((label, _EquipAction(g, comp)))
         buttons.append(("Back", _InventoryAction(g)))
         return self._make_list("Equip Component", *buttons)
@@ -268,8 +318,14 @@ class _UpgradeMenuAction(_MenuActionBase):
     def __call__(self):
         g = self.game
         run = g.active_run
-        from spacewar.roguelike.upgrades import get_upgrade_level, can_upgrade, get_upgrade_cost_text
+        from spacewar.roguelike.upgrades import get_upgrade_level, can_upgrade, get_upgrade_cost_text, UPGRADE_MULTIPLIERS
         from spacewar.menus.component_menu import SLOT_ORDER, SLOT_LABELS
+
+        inv = run.inventory
+        mat_str = " | ".join(f"{v} {k}" for k, v in inv.materials.items() if v > 0)
+        header = f"=== Upgrades ===\nScrap: {inv.scrap}"
+        if mat_str:
+            header += f"\n{mat_str}"
 
         buttons = []
         for slot in SLOT_ORDER:
@@ -279,19 +335,23 @@ class _UpgradeMenuAction(_MenuActionBase):
             lvl = get_upgrade_level(comp)
             label = SLOT_LABELS.get(slot, slot.value)
             if lvl >= 3:
-                buttons.append((f"{label}: {comp.name} (MAX)", _UpgradeMenuAction(g)))
+                buttons.append((f"{label}: {comp.name} [MAX]", _UpgradeMenuAction(g)))
             else:
                 cost = get_upgrade_cost_text(comp)
                 upgradeable = can_upgrade(comp, run.inventory)
-                marker = "" if upgradeable else " [need more]"
+                next_mult = UPGRADE_MULTIPLIERS.get(lvl + 1, 1.0)
+                preview = f"x{next_mult}"
+                if upgradeable:
+                    label_text = f"{label}: {comp.name} -> Lv{lvl+1} ({preview}) [{cost}]"
+                else:
+                    label_text = f"{label}: {comp.name} Lv{lvl} (need: {cost})"
                 buttons.append((
-                    f"{label}: {comp.name} -> Lv{lvl+1} ({cost}){marker}",
+                    label_text,
                     _DoUpgrade(g, comp) if upgradeable else _UpgradeMenuAction(g),
                 ))
 
         buttons.append(("Back", _BackToMap(g)))
-        return self._make_list(
-            f"Upgrade Components\nScrap: {run.inventory.scrap}", *buttons)
+        return self._make_list(header, *buttons)
 
 
 class _DoUpgrade(_MenuActionBase):
@@ -444,19 +504,27 @@ def _show_shop(game, run, items):
     for i, item in enumerate(items):
         if "component" in item:
             comp = item["component"]
-            label = f"{comp.name} - {item['price']} scrap"
+            slot_name = comp.slot.value.replace("_", " ").title()
+            affordable = run.inventory.scrap >= item["price"]
+            tag = "" if affordable else " [!]"
+            label = f"{comp.name} [{slot_name}] - {item['price']}s{tag}"
             buttons.append((label, _BuyComponent(game, i)))
         elif item.get("type") == "material":
             mat = item["material"]
-            label = f"{item['amount']}x {mat.title()} - {item['price']} scrap"
+            affordable = run.inventory.scrap >= item["price"]
+            tag = "" if affordable else " [!]"
+            label = f"{item['amount']}x {mat.title()} - {item['price']}s{tag}"
             buttons.append((label, _BuyMaterial(game, i)))
         elif item.get("type") == "repair":
-            label = f"Full Repair - {item['price']} scrap"
+            needs_repair = run.hull < run.max_hull or run.shields < run.max_shields
+            affordable = run.inventory.scrap >= item["price"]
+            tag = " [full hp]" if not needs_repair else ("" if affordable else " [!]")
+            label = f"Full Repair - {item['price']}s{tag}"
             buttons.append((label, _BuyRepair(game, i)))
 
     buttons.append(("Leave Shop", _BackToMap(game)))
     game.selection_list = game.make_selection_list(
-        f"Shop (Scrap: {run.inventory.scrap})", *buttons)
+        f"=== Shop ===\nScrap: {run.inventory.scrap}", *buttons)
     return None
 
 

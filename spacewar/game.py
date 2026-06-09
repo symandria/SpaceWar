@@ -37,6 +37,7 @@ from spacewar.ui.selection_list import SelectionList
 from spacewar.ui.infobox import Infobox
 from spacewar.ui.command_box import CommandBox
 from spacewar.ui.minimap import Minimap
+from spacewar.ui.hud import BattleHUD
 from spacewar.rendering.viewport import Viewport, VIEWPORT_SIZE
 from spacewar.entities.map_object import Asteroid, NebulaTile
 from spacewar.components.race_configs import build_race_loadout
@@ -113,6 +114,9 @@ class Game:
         self.scoring_system = ScoringSystem()
         self.visibility_system = VisibilitySystem()
         self.minimap = Minimap(48, 40)
+        self.battle_hud = BattleHUD(
+            self.infofont, self.small_font,
+            self.settings.foreground, self.settings.background)
         self.turn_resolver = TurnResolver(
             self.movement_system, self.collision_system, self.combat_system,
             self.ai_system, self.teleportation_system, self.cloaking_system,
@@ -400,17 +404,13 @@ class Game:
         if b.player and move_time == 0:
             self._render_fog(b.player, view_rect)
 
-        if b.player:
-            titlebar = f"H:{b.player.hull} S:{b.player.shields} Spd:{b.player.speed}"
-        else:
-            titlebar = self.text_manager.load("titlebar-no-player")
-        self.screen.blit(self.small_font.render(
-            titlebar, True, self.settings.foreground, self.settings.background), (0, 0))
-
         pygame.transform.scale(self.screen, self.settings.window_size, self.display)
 
+        m = self.settings.window_multiplier
+        self.battle_hud.render(self.display, b.player, m)
+
         if b.player:
-            mm_scale = max(2, self.settings.window_multiplier)
+            mm_scale = max(2, m)
             mm_w = self.minimap.width * mm_scale
             mm_h = self.minimap.height * mm_scale
             mm_x = self.settings.window_size[0] - mm_w - 4

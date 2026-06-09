@@ -18,29 +18,54 @@ class Infobox:
     def _build(self):
         t = self.target
         fg = self.foreground
+        dim = (160, 160, 160) if fg == (255, 255, 255) else (80, 80, 80)
+
         if t.type == "sentry":
             self.surfaces = [
                 self.font.render(t.name, True, fg),
-                self.font.render(f"Shields: {t.shields}", True, fg),
-                self.font.render(f"Hull: {t.hull}", True, fg),
+                self.font.render(f"Hull: {t.hull}/{t.max_hull}", True, fg),
+                self.font.render(f"Shields: {t.shields}/{t.max_shields}", True, fg),
             ]
         elif self.is_ally:
             self.surfaces = [
-                self.font.render(self.text_manager.load("rank-" + t.rank), True, fg),
+                self.font.render(
+                    self.text_manager.load("rank-" + t.rank) if t.rank else "", True, fg),
                 self.font.render(t.captain, True, fg),
                 self.font.render(t.name, True, fg),
-                self.font.render(f"Hull: {t.hull}  Shields: {t.shields}", True, fg),
-                self.font.render(f"Speed: {t.speed}", True, fg),
+                self.font.render(f"Hull: {t.hull}/{t.max_hull}", True, fg),
+                self.font.render(f"Shields: {t.shields}/{t.max_shields}", True, fg),
+                self.font.render(f"Speed: {t.speed}", True, dim),
             ]
+            w1 = t.loadout.get_weapon(1)
+            w2 = t.loadout.get_weapon(2)
+            if w1:
+                wn = w1.get("weapon_type", "?").replace("_", " ").title()
+                self.surfaces.append(self.font.render(f"W1: {wn}", True, dim))
+            if w2:
+                wn = w2.get("weapon_type", "?").replace("_", " ").title()
+                self.surfaces.append(self.font.render(f"W2: {wn}", True, dim))
         else:
             shield_pct = int(t.shields / t.max_shields * 100) if t.max_shields > 0 else 0
+            hull_indicator = "OK" if t.hull > t.max_hull * 0.5 else (
+                "LOW" if t.hull > t.max_hull * 0.25 else "CRIT")
             self.surfaces = [
-                self.font.render(self.text_manager.load("rank-" + t.rank), True, fg),
+                self.font.render(
+                    self.text_manager.load("rank-" + t.rank) if t.rank else "", True, fg),
                 self.font.render(t.captain, True, fg),
                 self.font.render(t.name, True, fg),
                 self.font.render(f"Shields: {shield_pct}%", True, fg),
-                self.font.render(f"Speed: {t.speed}", True, fg),
+                self.font.render(f"Hull: {hull_indicator}", True, fg),
+                self.font.render(f"Speed: {t.speed}", True, dim),
             ]
+            if t.cloaked:
+                self.surfaces.append(
+                    self.font.render("CLOAKED", True, (200, 100, 255)))
+            special = t.loadout.get_component(
+                __import__('spacewar.components.base', fromlist=['ComponentSlot']).ComponentSlot.SPECIAL)
+            if special and special.get("ability_type"):
+                self.surfaces.append(
+                    self.font.render(f"[{special.name}]", True, dim))
+
         width = 0
         height = 0
         for surface in self.surfaces:

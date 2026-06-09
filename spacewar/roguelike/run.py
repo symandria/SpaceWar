@@ -87,18 +87,24 @@ class Run:
         self.shields = min(self.shields, self.max_shields)
 
     def get_status_text(self):
+        tier_names = {1: "Frontier", 2: "Warzone", 3: "Core"}
+        tier_name = tier_names.get(self.current_tier, f"Tier {self.current_tier}")
+        hull_bar = self._bar(self.hull, self.max_hull, 10)
+        shield_bar = self._bar(self.shields, self.max_shields, 10)
         lines = [
-            f"Tier {self.current_tier}/{self.max_tier}",
-            f"Hull: {self.hull}/{self.max_hull}",
-            f"Shields: {self.shields}/{self.max_shields}",
+            f"--- {tier_name} (Tier {self.current_tier}/{self.max_tier}) ---",
+            f"Hull:    [{hull_bar}] {self.hull}/{self.max_hull}",
+            f"Shields: [{shield_bar}] {self.shields}/{self.max_shields}",
             f"Scrap: {self.inventory.scrap}",
-            f"Battles: {self.battles_won} | Kills: {self.total_kills}",
         ]
         mats = self.inventory.materials
-        mat_parts = []
-        for k, v in mats.items():
-            if v > 0:
-                mat_parts.append(f"{k}: {v}")
+        mat_parts = [f"{v} {k}" for k, v in mats.items() if v > 0]
         if mat_parts:
-            lines.append("Materials: " + ", ".join(mat_parts))
+            lines.append(" | ".join(mat_parts))
         return "\n".join(lines)
+
+    def _bar(self, current, maximum, width):
+        if maximum <= 0:
+            return "." * width
+        filled = int(width * max(0, current) / maximum)
+        return "#" * filled + "." * (width - filled)

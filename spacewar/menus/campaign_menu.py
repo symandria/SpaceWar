@@ -108,39 +108,57 @@ class ShipOverview(MenuAction):
             race = specials_map[race][0]
 
         loadout = build_race_loadout(race)
+        wp = pc["weapon power"]
 
-        lines = [f"Race: {race.title()}"]
+        lines = [f"=== {race.title()} ==="]
         lines.append(f"Shields: {pc['shields']} | Hull: {loadout.get_stat(ComponentSlot.HULL, 'strength', 50)}")
-        lines.append(f"Weapon Power: {pc['weapon power']}")
-        lines.append(f"Engine: {pc['engine']} (Max Speed)")
+        lines.append(f"Weapon Power: {wp}")
 
         eng = loadout.get_component(ComponentSlot.ENGINE)
         if eng:
-            lines.append(f"  Acceleration: {eng.get('acceleration', 2)}")
-            lines.append(f"  Turning: {eng.get('turning_degrees', 90)} deg")
+            lines.append(f"Engine: Spd {pc['engine']} "
+                        f"Accel {eng.get('acceleration', 2)} "
+                        f"Turn {eng.get('turning_degrees', 90)}deg")
 
         sens = loadout.get_component(ComponentSlot.SENSORS)
         if sens:
-            lines.append(f"Sensors: {sens.get('vision_forward', 10)}F / {sens.get('vision_backward', 5)}R")
-            cd = sens.get('cloak_detection', 0)
-            if cd > 0:
-                lines.append(f"  Cloak Detection: {cd}")
+            lines.append(f"Sensors: {sens.get('vision_forward', 10)}F "
+                        f"/ {sens.get('vision_backward', 5)}R")
+
+        from spacewar.systems.weapons import WeaponType, WEAPON_STATS
+        for slot_num, slot in [(1, ComponentSlot.WEAPON_1), (2, ComponentSlot.WEAPON_2)]:
+            comp = loadout.get_component(slot)
+            if comp:
+                wtype_str = comp.get("weapon_type", "?")
+                try:
+                    wt = WeaponType(wtype_str)
+                    stats = WEAPON_STATS[wt]
+                    dmg = stats["damage_per_hit"](wp) * stats["hits"]
+                    name = stats["display_name"]
+                except (ValueError, KeyError):
+                    name = wtype_str.replace("_", " ").title()
+                    dmg = "?"
+                lines.append(f"W{slot_num}: {name} dmg:{dmg} rng:{comp.get('weapon_range', 0)}")
 
         sh = loadout.get_component(ComponentSlot.SHIELDS)
         if sh:
-            lines.append(f"Passive Regen: {sh.get('passive_regen', 5)}/turn")
+            parts = [f"Regen: {sh.get('passive_regen', 5)}/turn"]
             dr = sh.get('active_dr', 0)
             if dr > 0:
-                lines.append(f"Active DR: {dr}%")
+                parts.append(f"DR: {dr}%")
+            lines.append(" | ".join(parts))
+
+        special = loadout.get_component(ComponentSlot.SPECIAL)
+        if special and special.get("ability_type"):
+            lines.append(f"Special: {special.name}")
 
         st = loadout.get_component(ComponentSlot.STEALTH)
         if st and st.get('active_cloak'):
-            lines.append("Cloaking: Yes")
+            lines.append("Cloaking: Active")
 
         title = "\n".join(lines)
         return self._make_list(
             title,
-            ("Weapons", ViewWeapons(g, race)),
             ("Components", ViewComponentsFromCampaign(g, race)),
             (self._text("menu-back"), CampaignMenu(g)),
         )

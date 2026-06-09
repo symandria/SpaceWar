@@ -11,35 +11,23 @@ class CommandBox:
         self.background = background
         self.text_manager = text_manager
 
-        self.movement_info = self.font.render(
-            text_manager.load("move to") + "(XX, XX)", True, foreground)
-        longest = 0, None
-        for tag in ("do nothing", "fire-phaser", "fire-torpedo", "self-destruct"):
-            if len(text_manager.load(tag)) > longest[0]:
-                longest = len(text_manager.load(tag)), tag
-        self.action_info = self.font.render(
-            text_manager.load("action-prefix") + text_manager.load(longest[1]) + "(XX, XX)",
-            True, foreground)
-        self.action_info_rect = self.action_info.get_rect()
-
         self.okay_button, self.okay_button_rect = render_button(
             text_manager.load("button-okay"), self.font, foreground, background)
         self.cancel_button, self.cancel_button_rect = render_button(
             text_manager.load("button-cancel"), self.font, foreground, background)
         self.move_button, self.move_button_rect = render_button(
-            text_manager.load("button-destination"), self.font, foreground, background)
+            "Move [M]", self.font, foreground, background)
         self.act_button, self.act_button_rect = render_button(
-            text_manager.load("button-target"), self.font, foreground, background)
+            "Target [W]", self.font, foreground, background)
 
+        sample_text = self.font.render("Move to: (XX, XX)  Action: XXXXXXXXXX", True, foreground)
         frame_width = max(
-            self.movement_info.get_width() + self.move_button.get_width() + 4,
-            self.action_info.get_width() + self.act_button.get_width() + 4,
-            self.screen.get_width() // 2,
+            sample_text.get_width() + 4,
+            self.screen.get_width() * 2 // 3,
         )
         frame_height = (
-            self.movement_info.get_height() +
-            self.action_info.get_height() +
-            max(self.okay_button_rect.height, self.cancel_button_rect.height) + 16
+            sample_text.get_height() * 2 +
+            max(self.okay_button_rect.height, self.cancel_button_rect.height) + 14
         )
         self.frame = pygame.Surface((frame_width, frame_height))
         self.frame.fill(background)
@@ -52,46 +40,52 @@ class CommandBox:
         self.cancel_button_rect.right = self.rect.right - 3
         self.cancel_button_rect.bottom = self.okay_button_rect.bottom
         self.okay_button_rect.right = self.cancel_button_rect.left - 3
-        self.action_info_rect.topleft = (
-            self.rect.left + 2,
-            self.rect.top + 10 + self.movement_info.get_height(),
-        )
-        self.move_button_rect.centery = (
-            self.rect.top + 4 + self.movement_info.get_height() // 2
-        )
+
+        self.movement_info = None
+        self.action_info = None
+        self.action_info_rect = pygame.Rect(0, 0, 0, 0)
+        self.move_button_rect.top = self.rect.top + 2
         self.move_button_rect.right = self.rect.right - 3
-        self.act_button_rect.centery = self.action_info_rect.centery
+        self.act_button_rect.top = self.rect.top + sample_text.get_height() + 6
         self.act_button_rect.right = self.rect.right - 3
 
     def update(self, player):
-        tm = self.text_manager
+        move_str = repr(player.movement) if player.movement else "..."
         self.movement_info = self.font.render(
-            tm.load("move to") + (repr(player.movement) if player.movement else "..."),
-            True, self.foreground)
-        text = tm.load("action-prefix")
-        if not player.action:
-            text += tm.load("do nothing")
-        elif player.action in ("phaser", "torpedo"):
-            text += tm.load("fire-" + player.action) + (
-                repr(player.target) if player.target else "...")
-        elif player.action in ("weapon_1", "weapon_2"):
-            slot = 1 if player.action == "weapon_1" else 2
-            comp = player.loadout.get_weapon(slot)
-            wname = comp.get("weapon_type", "weapon").replace("_", " ").title() if comp else "Weapon"
-            target_str = repr(player.target) if player.target else "..."
-            text += f"Fire {wname} {target_str}"
-        elif player.action == "regen_shields":
-            text += "Regen Shields"
-        elif player.action == "power_shields":
-            text += "Power to Shields"
-        elif player.action == "self-destruct":
-            text += tm.load("self-destruct")
-        self.action_info = self.font.render(text, True, self.foreground)
+            f"Move: {move_str}", True, self.foreground)
+
+        action_str = self._format_action(player)
+        self.action_info = self.font.render(action_str, True, self.foreground)
         self.action_info_rect = self.action_info.get_rect()
         self.action_info_rect.topleft = (
             self.rect.left + 2,
-            self.rect.top + 10 + self.movement_info.get_height(),
+            self.rect.top + self.movement_info.get_height() + 6,
         )
+
+    def _format_action(self, player):
+        action = player.action
+        if not action:
+            return "Action: None"
+        if action in ("weapon_1", "weapon_2"):
+            slot = 1 if action == "weapon_1" else 2
+            comp = player.loadout.get_weapon(slot)
+            if comp:
+                wname = comp.get("weapon_type", "?").replace("_", " ").title()
+                wrange = comp.get("weapon_range", 0)
+                target_str = repr(player.target) if player.target else "..."
+                return f"Fire: {wname} r{wrange} -> {target_str}"
+            return f"Fire: Weapon {slot} -> ..."
+        if action in ("phaser", "torpedo"):
+            target_str = repr(player.target) if player.target else "..."
+            return f"Fire: {action.title()} -> {target_str}"
+        if action == "regen_shields":
+            amt = int(player.weapon_power * player.active_regen_mult)
+            return f"Regen Shields (+{amt})"
+        if action == "power_shields":
+            return f"Power to Shields (DR {player.active_dr}%)"
+        if action == "self-destruct":
+            return "Self-Destruct!"
+        return f"Action: {action}"
 
     def render(self, player_action):
         self.screen.blit(self.frame, self.rect)
