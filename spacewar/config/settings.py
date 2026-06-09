@@ -2,7 +2,7 @@ import configparser
 import os
 from collections import OrderedDict
 
-from spacewar.config.constants import INI_DEFAULTS
+from spacewar.config.constants import INI_DEFAULTS, SCREEN_SIZE
 
 
 class GameSettings:
@@ -10,8 +10,8 @@ class GameSettings:
         pygame_info = _get_display_info()
         default_fullscreen = (pygame_info == (800, 480))
         default_multiplier = min(
-            (pygame_info[0] - (0 if default_fullscreen else 20)) // 160,
-            (pygame_info[1] - (0 if default_fullscreen else 20)) // 160,
+            (pygame_info[0] - (0 if default_fullscreen else 20)) // SCREEN_SIZE[0],
+            (pygame_info[1] - (0 if default_fullscreen else 20)) // SCREEN_SIZE[1],
         )
 
         self._ini = configparser.ConfigParser(dict_type=OrderedDict)
@@ -42,7 +42,7 @@ class GameSettings:
             ))),
             ('Gameplay', OrderedDict((
                 ('Classic collisions', 'True'),
-                ('White-on-black', 'False'),
+                ('White-on-black', 'True'),
                 ('Strict character stats', 'False'),
             ))),
         ))
@@ -70,7 +70,10 @@ class GameSettings:
             self.foreground = (0, 0, 0)
             self.background = (255, 255, 255)
 
-        self.window_size = (160 * self.window_multiplier, 160 * self.window_multiplier)
+        self.window_size = (
+            SCREEN_SIZE[0] * self.window_multiplier,
+            SCREEN_SIZE[1] * self.window_multiplier,
+        )
 
 
 def _get_display_info():

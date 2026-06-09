@@ -4,16 +4,16 @@ from spacewar.rendering.hex_grid import HexGrid
 class TeleportationSystem:
     def setup(self, ships, sprite_lookup):
         for ship in ships:
+            has_teleport = ship.loadout.has_special("teleportation")
             should_teleport = (
-                (("teleportation" in ship.specials and not ship.action) or
-                 "teleportation_always" in ship.specials) and
+                has_teleport and
                 not ship.get_valid_destination(
                     ship.movement[0], ship.movement[1], bool(ship.action))
             )
             if should_teleport:
                 ship.teleport_target = HexGrid.hex_to_coords(*ship.movement)
                 ship.speed = 0
-                if "cloaking" in ship.specials:
+                if ship.active_cloak:
                     ship.cloak(False, sprite_lookup)
             else:
                 ship.move_target = HexGrid.hex_to_coords(*ship.movement)

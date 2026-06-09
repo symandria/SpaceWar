@@ -87,8 +87,7 @@ class CommandEntryState(GameState):
                     g.display.get_width(), g.settings.foreground, g.settings.background)
             elif not player.get_valid_destination(
                     player.movement[0], player.movement[1], bool(player.action)) and \
-                    not (("teleportation" in player.specials and not player.action) or
-                         "teleportation_always" in player.specials):
+                    not player.loadout.has_special("teleportation"):
                 from spacewar.ui.messagebox import Messagebox
                 g.message_box = Messagebox(
                     g.text_manager.load("invalid-destination"), g.infofont,

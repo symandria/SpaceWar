@@ -1,5 +1,11 @@
 import pygame
 
+from spacewar.config.constants import (
+    GRID_ROWS, GRID_COLS_ODD, GRID_COLS_EVEN, SCREEN_SIZE,
+    HEX_SPACING_X, HEX_SPACING_Y, HEX_OFFSET_X, HEX_TILE_SIZE,
+    GRID_MARGIN_X, GRID_MARGIN_Y, PLAY_AREA_TOP, SPRITE_HALF, max_col,
+)
+
 
 class HexGrid:
     def __init__(self, foreground, background):
@@ -8,7 +14,7 @@ class HexGrid:
         self._build_surfaces()
 
     def _build_surfaces(self):
-        self.hex_tile = pygame.Surface((15, 15))
+        self.hex_tile = pygame.Surface((HEX_TILE_SIZE, HEX_TILE_SIZE))
         self.hex_tile.fill(self.background)
         self.hex_tile.set_colorkey(self.background)
         hex_points = (
@@ -45,27 +51,39 @@ class HexGrid:
             self.invalid_surface.set_at(pt, (206, 207, 156))
 
     def build_background(self):
-        screen = pygame.Surface((160, 160))
+        screen = pygame.Surface(SCREEN_SIZE)
         screen.fill(self.background)
-        for row in range(14):
-            for column in range(10 if row % 2 else 11):
-                screen.blit(self.hex_tile, (2 + 14 * column + (row % 2) * 7, 15 + 10 * row))
+        for row in range(GRID_ROWS):
+            cols = GRID_COLS_EVEN if row % 2 else GRID_COLS_ODD
+            for column in range(cols):
+                screen.blit(self.hex_tile, (
+                    GRID_MARGIN_X + HEX_SPACING_X * column + (row % 2) * HEX_OFFSET_X,
+                    GRID_MARGIN_Y + HEX_SPACING_Y * row,
+                ))
         return screen
 
     @staticmethod
     def hex_to_coords(row, column):
-        return (14 * column + ((row - 1) % 2) * 7 - 9, 8 + 10 * row)
+        return (
+            HEX_SPACING_X * column + ((row - 1) % 2) * HEX_OFFSET_X - (HEX_SPACING_X - SPRITE_HALF - 1),
+            (GRID_MARGIN_Y - HEX_OFFSET_X) + HEX_SPACING_Y * row,
+        )
 
     @staticmethod
     def coords_to_hex(pos):
-        if pos[0] < 2 or pos[1] < 17 or pos[0] > 155 or pos[1] > 156:
+        x, y = pos
+        x_min = GRID_MARGIN_X
+        y_min = PLAY_AREA_TOP
+        x_max = GRID_MARGIN_X + (GRID_COLS_ODD - 1) * HEX_SPACING_X + HEX_TILE_SIZE - 2
+        y_max = PLAY_AREA_TOP + GRID_ROWS * HEX_SPACING_Y - 1
+        if x < x_min or y < y_min or x > x_max or y > y_max:
             return None
-        elif pos[0] < 9 and (pos[1] - 17) % 20 >= 10:
+        elif x < x_min + HEX_OFFSET_X and (y - y_min) % (2 * HEX_SPACING_Y) >= HEX_SPACING_Y:
             return None
-        elif (pos[1] - 17) % 20 < 10:
-            return (pos[1] - 17) // 10 + 1, (pos[0] - 2) // 14 + 1
+        elif (y - y_min) % (2 * HEX_SPACING_Y) < HEX_SPACING_Y:
+            return (y - y_min) // HEX_SPACING_Y + 1, (x - x_min) // HEX_SPACING_X + 1
         else:
-            return (pos[1] - 17) // 10 + 1, (pos[0] - 9) // 14 + 1
+            return (y - y_min) // HEX_SPACING_Y + 1, (x - x_min - HEX_OFFSET_X) // HEX_SPACING_X + 1
 
     @staticmethod
     def hex_distance(hex1, hex2):

@@ -3,7 +3,27 @@ from collections import OrderedDict
 
 import pygame
 
-SCREEN_SIZE = (160, 160)
+GRID_ROWS = 14
+GRID_COLS_ODD = 11
+GRID_COLS_EVEN = 10
+HEX_SPACING_X = 14
+HEX_SPACING_Y = 10
+HEX_OFFSET_X = 7
+HEX_TILE_SIZE = 15
+GRID_MARGIN_X = 2
+GRID_MARGIN_Y = 15
+PLAY_AREA_TOP = GRID_MARGIN_Y + 2
+SPRITE_HALF = 4
+
+
+def max_col(row):
+    return GRID_COLS_EVEN if row % 2 == 0 else GRID_COLS_ODD
+
+
+SCREEN_SIZE = (
+    GRID_MARGIN_X + (GRID_COLS_ODD - 1) * HEX_SPACING_X + HEX_TILE_SIZE + 3,
+    GRID_MARGIN_Y + (GRID_ROWS - 1) * HEX_SPACING_Y + HEX_TILE_SIZE,
+)
 
 BITBOX = pygame.mask.Mask((9, 9))
 BITBOX.fill()

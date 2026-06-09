@@ -4,6 +4,8 @@ import glob
 import pygame
 import pygame.gfxdraw
 
+from spacewar.config.constants import GRID_ROWS, max_col
+
 
 class GameRenderer:
     def __init__(self, settings, hex_grid):
@@ -31,8 +33,8 @@ class GameRenderer:
             screen.fill(settings.background)
 
         if show_invalid_destinations and b.player:
-            for row in range(1, 15):
-                for column in range(1, 12 if row % 2 else 11):
+            for row in range(1, GRID_ROWS + 1):
+                for column in range(1, max_col(row) + 1):
                     if not b.player.get_valid_destination(
                             row, column, bool(b.player.action)):
                         x, y = hex_grid.hex_to_coords(row, column)

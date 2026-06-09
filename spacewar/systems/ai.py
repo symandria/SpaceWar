@@ -1,6 +1,6 @@
 import random
 
-from spacewar.config.constants import SENTRY_INVALID
+from spacewar.config.constants import GRID_ROWS, SENTRY_INVALID, max_col
 from spacewar.rendering.hex_grid import HexGrid
 
 
@@ -17,8 +17,8 @@ class AISystem:
 
             valid_targets = []
             valid_movements = []
-            for row in range(1, 15):
-                for col in range(1, 12 if row % 2 else 11):
+            for row in range(1, GRID_ROWS + 1):
+                for col in range(1, max_col(row) + 1):
                     if enemy.get_valid_destination(row, col, bool(enemy.action)) and \
                             (enemy.type == "sentry" or (row, col) != ehex):
                         valid_movements.append((row, col))
@@ -37,8 +37,8 @@ class AISystem:
                                 break
 
             if enemy.action and not valid_targets:
-                row = random.randint(1, 14)
-                enemy.target = row, random.randint(1, 11 if row % 2 else 10)
+                row = random.randint(1, GRID_ROWS)
+                enemy.target = row, random.randint(1, max_col(row))
             elif enemy.action:
                 enemy.target = random.choice(valid_targets)
 
@@ -49,5 +49,5 @@ class AISystem:
 
             if (("teleportation" in enemy.specials and not enemy.action) or
                     "teleportation_always" in enemy.specials) and random.random() > 0.5:
-                row = random.randint(1, 14)
-                enemy.movement = row, random.randint(1, 11 if row % 2 else 10)
+                row = random.randint(1, GRID_ROWS)
+                enemy.movement = row, random.randint(1, max_col(row))

@@ -12,7 +12,7 @@ class DeathSystem:
             for ship in ships:
                 if ship in dying:
                     continue
-                if ship.shields < 0:
+                if ship.is_dead():
                     dying.append(ship)
                     for other in ships:
                         if other == ship:
@@ -20,14 +20,12 @@ class DeathSystem:
                         if HexGrid.hex_distance(
                                 HexGrid.coords_to_hex(ship.pos),
                                 HexGrid.coords_to_hex(other.pos)) <= 1:
-                            if other.shields >= 0:
-                                before = other.shields
+                            if not other.is_dead():
                                 other.apply_damage(self.EXPLOSION_DAMAGE)
-                                damage = before - other.shields
                                 if team_game and ship.type == other.type:
-                                    match_stats[ship]["teamdamage"] -= damage
+                                    match_stats[ship]["teamdamage"] -= self.EXPLOSION_DAMAGE
                                 else:
-                                    match_stats[ship]["damage"] += damage
+                                    match_stats[ship]["damage"] += self.EXPLOSION_DAMAGE
                                 recheck = True
         return dying
 

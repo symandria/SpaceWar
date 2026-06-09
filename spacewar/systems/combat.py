@@ -2,6 +2,7 @@ import math
 
 import pygame
 
+from spacewar.config.constants import SCREEN_SIZE
 from spacewar.entities.ship import Ship
 from spacewar.entities.torpedo import Torpedo
 from spacewar.rendering.hex_grid import HexGrid
@@ -29,10 +30,10 @@ class CombatSystem:
         dx, dy = where[0] - origin[0], where[1] - origin[1]
         if abs(dx) <= 0.01 and abs(dy) <= 0.01:
             dx = 100
-        while 0 < where[0] < 160 and 0 < where[1] < 160:
+        while 0 < where[0] < SCREEN_SIZE[0] and 0 < where[1] < SCREEN_SIZE[1]:
             where = where[0] + dx, where[1] + dy
 
-        temp = pygame.surface.Surface((160, 160))
+        temp = pygame.surface.Surface(SCREEN_SIZE)
         pygame.draw.line(temp, (255, 255, 255), origin, where, 2)
         temp.set_colorkey((0, 0, 0))
         mask = pygame.mask.from_surface(temp)
@@ -69,8 +70,9 @@ class CombatSystem:
                         who.was_cloaked = False
                 if "phaser_focus" in who.specials:
                     damage_multiplier *= 2
+                was_dead = what.is_dead()
                 what.apply_damage((who.phasers // 3) * damage_multiplier)
-                if who == player and what.shields < 0 and before >= 0:
+                if who == player and what.is_dead() and not was_dead:
                     match_stats[player]["kills-" + what.type] += 1
                 damage = before - what.shields
                 if team_game and who.type == what.type:
@@ -125,11 +127,11 @@ class CombatSystem:
                     self._asset_loader.play_sound("hit")
                     if torp.firer == player:
                         match_stats[player]["torpedoes hit"] += 1
-                    before = target.shields
+                    was_dead = target.is_dead()
                     target.apply_damage(torp.power)
-                    if torp.firer == player and target.shields < 0 and before >= 0:
+                    if torp.firer == player and target.is_dead() and not was_dead:
                         match_stats[player]["kills-" + target.type] += 1
-                    damage = before - target.shields
+                    damage = torp.power
                     if team_game and torp.firer.type == target.type:
                         match_stats[torp.firer]["teamdamage"] -= damage
                     else:

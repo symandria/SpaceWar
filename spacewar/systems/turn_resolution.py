@@ -87,7 +87,7 @@ class TurnResolver:
         elif self.move_time == 1:
             for ship in battle.ships:
                 if ship.action == "self-destruct":
-                    ship.shields = -1
+                    ship.hull = -1
 
         if self.move_time > 0:
             self._combat.update_torpedoes(

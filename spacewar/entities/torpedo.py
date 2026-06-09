@@ -2,6 +2,8 @@ import math
 
 import pygame
 
+from spacewar.config.constants import SCREEN_SIZE, PLAY_AREA_TOP, GRID_MARGIN_X
+
 
 class Torpedo:
     def __init__(self, pos, target, firer, power, color):
@@ -28,8 +30,10 @@ class Torpedo:
             self.rect.center = self.pos
 
     def is_off_screen(self):
-        return (self.rect.bottom < 17 or self.rect.top > 159 or
-                self.rect.right < 2 or self.rect.left > 157)
+        return (self.rect.bottom < PLAY_AREA_TOP or
+                self.rect.top > SCREEN_SIZE[1] - 1 or
+                self.rect.right < GRID_MARGIN_X or
+                self.rect.left > SCREEN_SIZE[0] - 3)
 
     def render(self, screen):
         screen.fill(self.color, self.rect)

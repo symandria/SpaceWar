@@ -1,6 +1,5 @@
 class CollisionSystem:
     PROXIMITY_THRESHOLD = 9
-    BASE_DAMAGE = 10
 
     def __init__(self):
         self._active = []
@@ -14,22 +13,20 @@ class CollisionSystem:
                             (other, ship) not in self._active:
                         self._active.append((ship, other))
                         asset_loader.play_sound("hit")
-                        before = ship.shields, other.shields
-                        ship_ramming = 3 if "ramming" in ship.specials else 1
-                        other_ramming = 3 if "ramming" in other.specials else 1
-                        ship.apply_damage(self.BASE_DAMAGE * other_ramming)
-                        other.apply_damage(self.BASE_DAMAGE * ship_ramming)
-                        if ship == player and other.shields < 0 and before[1] >= 0:
+                        ship_was_dead = ship.is_dead()
+                        other_was_dead = other.is_dead()
+                        ship.apply_damage(other.collision_damage)
+                        other.apply_damage(ship.collision_damage)
+                        if ship == player and other.is_dead() and not other_was_dead:
                             match_stats[player]["kills-" + other.type] += 1
-                        elif other == player and ship.shields < 0 and before[0] >= 0:
+                        elif other == player and ship.is_dead() and not ship_was_dead:
                             match_stats[player]["kills-" + ship.type] += 1
-                        damage = before[0] - ship.shields, before[1] - other.shields
                         if team_game and ship.type == other.type:
-                            match_stats[ship]["teamdamage"] -= damage[0]
-                            match_stats[other]["teamdamage"] -= damage[1]
+                            match_stats[ship]["teamdamage"] -= other.collision_damage
+                            match_stats[other]["teamdamage"] -= ship.collision_damage
                         else:
-                            match_stats[ship]["damage"] += damage[0]
-                            match_stats[other]["damage"] += damage[1]
+                            match_stats[ship]["damage"] += other.collision_damage
+                            match_stats[other]["damage"] += ship.collision_damage
                 elif (ship, other) in self._active:
                     self._active.remove((ship, other))
                 elif (other, ship) in self._active:

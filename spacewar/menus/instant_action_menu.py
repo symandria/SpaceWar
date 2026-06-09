@@ -44,7 +44,7 @@ class IAMakePlayer(MenuAction):
         player = Ship(
             self.race, HexGrid.hex_to_coords(1, 1), 180,
             RANKS[0], self._text("default-captain"), self._text("default-ship"),
-            100, 20, 30, 5, specials, human=True,
+            100, 10, 5, specials=specials, human=True,
             pixel_perfect=g.settings.pixel_perfect,
         )
         player.rotate(180, g.theme_loader.ships)
@@ -126,8 +126,8 @@ class IAMakeEnemy(MenuAction):
             self.race, HexGrid.hex_to_coords(*positions[pos_idx]), angle,
             RANKS[0], e_captain, e_name,
             200 if self.race == "sentry" else 100,
-            20, 30, 0 if self.race == "sentry" else 5,
-            specials, pixel_perfect=g.settings.pixel_perfect,
+            10, 0 if self.race == "sentry" else 5,
+            specials=specials, pixel_perfect=g.settings.pixel_perfect,
         )
         enemy.rotate(angle, g.theme_loader.ships)
         b.ships.append(enemy)

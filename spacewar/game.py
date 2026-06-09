@@ -3,7 +3,7 @@ import random
 import pygame
 import pygame.gfxdraw
 
-from spacewar.config.constants import RANKS, STATS
+from spacewar.config.constants import RANKS, STATS, SCREEN_SIZE, GRID_ROWS, max_col
 from spacewar.config.settings import GameSettings
 from spacewar.data.asset_loader import AssetLoader
 from spacewar.data.localization import TextManager
@@ -76,7 +76,7 @@ class Game:
         self.hex_grid = HexGrid(self.settings.foreground, self.settings.background)
         self.renderer = GameRenderer(self.settings, self.hex_grid)
 
-        self.screen = pygame.Surface((160, 160))
+        self.screen = pygame.Surface(SCREEN_SIZE)
         self.background = self.hex_grid.build_background()
 
         pygame.font.init()
@@ -160,8 +160,8 @@ class Game:
         player = Ship(
             race, HexGrid.hex_to_coords(1, 1), 180,
             pc["rank"], pc["name"], pc["ship"],
-            pc["shields"], pc["weapon power"] * 2, pc["weapon power"] * 9,
-            pc["engine"], specials, human=True,
+            pc["shields"], pc["weapon power"],
+            pc["engine"], specials=specials, human=True,
             pixel_perfect=self.settings.pixel_perfect,
         )
         player.rotate(180, self.theme_loader.ships)
@@ -212,9 +212,9 @@ class Game:
                 enemy = Ship(
                     slot_race, HexGrid.hex_to_coords(*positions[i]), angle,
                     rank, random.choice(valid_captains), random.choice(valid_ships),
-                    stats["shields"], stats["weapon power"] * 6,
-                    stats["weapon power"] * 9, stats["engine"],
-                    e_specials, pixel_perfect=self.settings.pixel_perfect,
+                    stats["shields"], stats["weapon power"],
+                    stats["engine"], specials=e_specials,
+                    pixel_perfect=self.settings.pixel_perfect,
                 )
                 enemy.rotate(angle, self.theme_loader.ships)
                 b.ships.append(enemy)
@@ -225,7 +225,7 @@ class Game:
                 enemy = Ship(
                     "sentry", HexGrid.hex_to_coords(*positions[i]), 0,
                     RANKS[0], "", self.text_manager.load("sentry"),
-                    200, 20, 30, 0, e_specials,
+                    200, 10, 0, specials=e_specials,
                     pixel_perfect=self.settings.pixel_perfect,
                 )
                 enemy.rotate(0, self.theme_loader.ships)
@@ -258,8 +258,8 @@ class Game:
             self.screen.blit(self.background, (0, 0))
 
         if show_invalid_destinations and b.player:
-            for row in range(1, 15):
-                for column in range(1, 12 if row % 2 else 11):
+            for row in range(1, GRID_ROWS + 1):
+                for column in range(1, max_col(row) + 1):
                     if not b.player.get_valid_destination(
                             row, column, bool(b.player.action)):
                         x, y = HexGrid.hex_to_coords(row, column)
