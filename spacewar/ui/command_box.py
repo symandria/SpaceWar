@@ -74,6 +74,14 @@ class CommandBox:
         elif player.action in ("phaser", "torpedo"):
             text += tm.load("fire-" + player.action) + (
                 repr(player.target) if player.target else "...")
+        elif player.action in ("weapon_1", "weapon_2"):
+            slot = 1 if player.action == "weapon_1" else 2
+            comp = player.loadout.get_weapon(slot)
+            wname = comp.get("weapon_type", "weapon").replace("_", " ").title() if comp else "Weapon"
+            target_str = repr(player.target) if player.target else "..."
+            text += f"Fire {wname} {target_str}"
+        elif player.action == "regen_shields":
+            text += "Regen Shields"
         elif player.action == "self-destruct":
             text += tm.load("self-destruct")
         self.action_info = self.font.render(text, True, self.foreground)
@@ -88,7 +96,7 @@ class CommandBox:
         self.screen.blit(self.movement_info, (self.rect.left + 2, self.rect.top + 2))
         self.screen.blit(self.move_button, self.move_button_rect)
         self.screen.blit(self.action_info, self.action_info_rect)
-        if player_action in ("phaser", "torpedo"):
+        if player_action in ("phaser", "torpedo", "weapon_1", "weapon_2"):
             self.screen.blit(self.act_button, self.act_button_rect)
         self.screen.blit(self.okay_button, self.okay_button_rect)
         self.screen.blit(self.cancel_button, self.cancel_button_rect)

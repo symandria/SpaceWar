@@ -18,6 +18,7 @@ class TurnResolver:
         self.move_time = 0
         self.dying = []
         self.phaser_hit_this_turn = False
+        self.shockwave_frame = 0
 
     @property
     def is_active(self):
@@ -28,22 +29,24 @@ class TurnResolver:
         self.move_time = 90
         self.dying = []
         self.phaser_hit_this_turn = False
+        self.shockwave_frame = 0
 
         self._teleportation.setup(battle.ships, sprite_lookup)
 
         for ship in battle.ships:
             if not ship.teleport_target:
-                dx = ship.pos[0] - ship.move_target[0]
-                dy = ship.pos[1] - ship.move_target[1]
-                if dx or dy:
-                    if dx < 0 and dx < -abs(dy):
-                        ship.rotate(270, sprite_lookup)
-                    elif dx > 0 and dx > abs(dy):
-                        ship.rotate(90, sprite_lookup)
-                    elif dy > 0:
-                        ship.rotate(0, sprite_lookup)
-                    else:
-                        ship.rotate(180, sprite_lookup)
+                if ship.move_target:
+                    dx = ship.pos[0] - ship.move_target[0]
+                    dy = ship.pos[1] - ship.move_target[1]
+                    if dx or dy:
+                        if dx < 0 and dx < -abs(dy):
+                            ship.rotate(270, sprite_lookup)
+                        elif dx > 0 and dx > abs(dy):
+                            ship.rotate(90, sprite_lookup)
+                        elif dy > 0:
+                            ship.rotate(0, sprite_lookup)
+                        else:
+                            ship.rotate(180, sprite_lookup)
 
             self._regeneration.setup_regen_flag(ship)
 
@@ -63,10 +66,14 @@ class TurnResolver:
                 battle.ships, self._asset_loader)
         elif self.move_time == 85:
             for ship in battle.ships:
-                if ship.action == "torpedo":
-                    self._combat.fire_torpedo(
-                        ship, ship.target, battle.torpedoes,
-                        battle.match_stats, battle.player)
+                action = ship.action
+                if action in ("torpedo", "weapon_2"):
+                    from spacewar.systems.weapons import WeaponType
+                    wtype = self._combat._get_weapon_type(ship, action)
+                    if wtype in (WeaponType.TORPEDOES, WeaponType.HE_TORPEDO):
+                        self._combat.fire_projectile(
+                            ship, ship.target, battle.torpedoes,
+                            battle.match_stats, battle.player, wtype)
         elif self.move_time == 80:
             self._teleportation.snap_positions(battle.ships)
         elif self.move_time == 70:
@@ -76,23 +83,74 @@ class TurnResolver:
                 self.phaser_hit_this_turn = False
             step = (self.move_time // 9) - 3
             for ship in battle.ships:
-                if ship.action == "phaser":
+                action = ship.action
+                if action in ("phaser", "weapon_1"):
                     phaser_data, self.phaser_hit_this_turn = \
-                        self._combat.fire_phaser(
+                        self._combat.fire_weapon(
                             ship, ship.target, step,
-                            battle.ships, battle.torpedoes,
+                            battle.ships, battle.torpedoes, battle.mines,
                             battle.match_stats, battle.team_game,
                             battle.player, self.phaser_hit_this_turn)
-                    draw_phasers.append(phaser_data)
+                    if phaser_data:
+                        draw_phasers.append(phaser_data)
+                elif action == "weapon_2":
+                    from spacewar.systems.weapons import WeaponType
+                    wtype = self._combat._get_weapon_type(ship, action)
+                    if wtype == WeaponType.DISRUPTORS and step < 3:
+                        phaser_data, self.phaser_hit_this_turn = \
+                            self._combat.fire_hitscan(
+                                ship, ship.target, step,
+                                battle.ships, battle.torpedoes,
+                                battle.match_stats, battle.team_game,
+                                battle.player, self.phaser_hit_this_turn,
+                                WeaponType.DISRUPTORS)
+                        if phaser_data:
+                            draw_phasers.append(phaser_data)
+        elif self.move_time == 20:
+            for ship in battle.ships:
+                if ship.action in ("weapon_1", "weapon_2", "phaser"):
+                    from spacewar.systems.weapons import WeaponType
+                    wtype = self._combat._get_weapon_type(ship, ship.action)
+                    if wtype == WeaponType.SHOCKWAVE:
+                        self._combat.fire_shockwave(
+                            ship, battle.ships, battle.match_stats,
+                            battle.team_game, battle.player)
+                        self.shockwave_frame = 10
+                    elif wtype == WeaponType.POINT_LAZERS:
+                        phaser_data, _ = self._combat.fire_point_lazers(
+                            ship, ship.target, battle.ships,
+                            battle.match_stats, battle.team_game,
+                            battle.player)
+                        if phaser_data:
+                            draw_phasers.append(phaser_data)
         elif self.move_time == 1:
             for ship in battle.ships:
                 if ship.action == "self-destruct":
                     ship.hull = -1
+                elif ship.action == "regen_shields":
+                    regen_amount = int(ship.weapon_power * ship.active_regen_mult)
+                    ship.shields = min(ship.shields + regen_amount, ship.max_shields)
+
+            for ship in battle.ships:
+                action = ship.action
+                if action in ("weapon_1", "weapon_2", "phaser"):
+                    from spacewar.systems.weapons import WeaponType
+                    wtype = self._combat._get_weapon_type(ship, action)
+                    if wtype == WeaponType.MINES and ship.target:
+                        self._combat.place_mine(
+                            ship, ship.target, battle.mines)
 
         if self.move_time > 0:
             self._combat.update_torpedoes(
                 battle.torpedoes, battle.ships,
                 battle.match_stats, battle.team_game, battle.player)
+            if battle.mines:
+                self._combat.update_mines(
+                    battle.mines, battle.ships, battle.match_stats,
+                    battle.team_game, battle.player, self._asset_loader)
+
+        if self.shockwave_frame > 0:
+            self.shockwave_frame -= 1
 
         self.move_time -= 1
 

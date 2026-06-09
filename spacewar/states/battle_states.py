@@ -104,21 +104,27 @@ class CommandEntryState(GameState):
         elif cb.move_button_rect.collidepoint(event.pos):
             return StateID.DESTINATION_SELECT
         elif cb.act_button_rect.collidepoint(event.pos) and \
-                b.player.action in ("phaser", "torpedo"):
+                b.player.action in ("phaser", "torpedo", "weapon_1", "weapon_2"):
             return StateID.TARGET_SELECT
         elif cb.action_info_rect.collidepoint(event.pos):
             def action_callback(action):
                 def callback():
                     b.player.action = action
                 return callback
-            g.selection_list = g.make_selection_list(
-                g.text_manager.load("choose-action"),
+            w1 = b.player.loadout.get_weapon(1)
+            w2 = b.player.loadout.get_weapon(2)
+            w1_name = w1.get("weapon_type", "lazers") if w1 else "lazers"
+            w2_name = w2.get("weapon_type", "torpedoes") if w2 else "torpedoes"
+            buttons = [
                 (g.text_manager.load("do nothing"), action_callback(None)),
-                (g.text_manager.load("fire-phaser"), action_callback("phaser")),
-                (g.text_manager.load("fire-torpedo"), action_callback("torpedo")),
+                (w1_name.replace("_", " ").title(), action_callback("weapon_1")),
+                (w2_name.replace("_", " ").title(), action_callback("weapon_2")),
+                ("Regen Shields", action_callback("regen_shields")),
                 (g.text_manager.load("self-destruct"),
                  action_callback("self-destruct")),
-            )
+            ]
+            g.selection_list = g.make_selection_list(
+                g.text_manager.load("choose-action"), *buttons)
         return None
 
     def update(self):

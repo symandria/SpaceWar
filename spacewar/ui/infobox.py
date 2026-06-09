@@ -2,12 +2,14 @@ import pygame
 
 
 class Infobox:
-    def __init__(self, target, font, foreground, background, text_manager):
+    def __init__(self, target, font, foreground, background, text_manager,
+                 is_ally=False):
         self.target = target
         self.font = font
         self.foreground = foreground
         self.background = background
         self.text_manager = text_manager
+        self.is_ally = is_ally
         self.surfaces = []
         self.image = None
         self.rect = None
@@ -19,18 +21,25 @@ class Infobox:
         if t.type == "sentry":
             self.surfaces = [
                 self.font.render(t.name, True, fg),
-                self.font.render(
-                    self.text_manager.load("shield-prefix") + repr(t.shields), True, fg),
+                self.font.render(f"Shields: {t.shields}", True, fg),
+                self.font.render(f"Hull: {t.hull}", True, fg),
             ]
-        else:
+        elif self.is_ally:
             self.surfaces = [
                 self.font.render(self.text_manager.load("rank-" + t.rank), True, fg),
                 self.font.render(t.captain, True, fg),
                 self.font.render(t.name, True, fg),
-                self.font.render(
-                    self.text_manager.load("shield-prefix") + repr(t.shields), True, fg),
-                self.font.render(
-                    self.text_manager.load("speed-prefix") + repr(t.speed), True, fg),
+                self.font.render(f"Hull: {t.hull}  Shields: {t.shields}", True, fg),
+                self.font.render(f"Speed: {t.speed}", True, fg),
+            ]
+        else:
+            shield_pct = int(t.shields / t.max_shields * 100) if t.max_shields > 0 else 0
+            self.surfaces = [
+                self.font.render(self.text_manager.load("rank-" + t.rank), True, fg),
+                self.font.render(t.captain, True, fg),
+                self.font.render(t.name, True, fg),
+                self.font.render(f"Shields: {shield_pct}%", True, fg),
+                self.font.render(f"Speed: {t.speed}", True, fg),
             ]
         width = 0
         height = 0

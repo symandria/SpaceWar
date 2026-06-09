@@ -40,6 +40,10 @@ class BattleState:
         self.ships = []
         self.dead_ships = []
         self.torpedoes = []
+        self.mines = []
+        self.asteroids = []
+        self.nebulae = []
+        self.nebulae_by_hex = {}
         self.match_stats = {}
         self.team_game = False
         self.player = None
@@ -265,10 +269,18 @@ class Game:
                         x, y = HexGrid.hex_to_coords(row, column)
                         self.screen.blit(self.hex_grid.invalid_surface, (x - 1, y - 1))
 
+        for neb in b.nebulae:
+            neb.render(self.screen)
+        for ast in b.asteroids:
+            ast.render(self.screen)
+
         if b.selected:
             self.screen.blit(
                 self.hex_grid.select_surface,
                 (int(b.selected.pos[0]) - 1, int(b.selected.pos[1]) - 1))
+
+        for mine in b.mines:
+            mine.render(self.screen)
 
         for torp in b.torpedoes:
             torp.render(self.screen)
@@ -300,8 +312,7 @@ class Game:
                         radius, (0, 255, 0))
 
         if b.player:
-            titlebar = self.text_manager.load("titlebar").format(
-                shields=b.player.shields, speed=b.player.speed)
+            titlebar = f"H:{b.player.hull} S:{b.player.shields} Spd:{b.player.speed}"
         else:
             titlebar = self.text_manager.load("titlebar-no-player")
         self.screen.blit(self.small_font.render(
@@ -313,10 +324,13 @@ class Game:
             if self.infobox and self.infobox.target == b.info_target:
                 self.infobox.update()
             else:
+                is_ally = (b.info_target == b.player or
+                           (b.team_game and b.player and
+                            b.info_target.type == b.player.type))
                 self.infobox = Infobox(
                     b.info_target, self.infofont,
                     self.settings.foreground, self.settings.background,
-                    self.text_manager)
+                    self.text_manager, is_ally=is_ally)
             ib = self.infobox
             ib.rect.left *= self.settings.window_multiplier
             ib.rect.top *= self.settings.window_multiplier
