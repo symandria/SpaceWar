@@ -37,6 +37,7 @@ from spacewar.ui.infobox import Infobox
 from spacewar.ui.command_box import CommandBox
 from spacewar.rendering.viewport import Viewport, VIEWPORT_SIZE
 from spacewar.entities.map_object import Asteroid, NebulaTile
+from spacewar.components.race_configs import build_race_loadout
 
 
 class BattleState:
@@ -166,12 +167,12 @@ class Game:
         if race in specials_map and isinstance(specials_map[race], (list, tuple)):
             race = random.choice(specials_map[race])
 
-        specials = self.theme_loader.get_specials(race)
+        loadout = build_race_loadout(race)
         player = Ship(
             race, HexGrid.hex_to_coords(1, 1), 180,
             pc["rank"], pc["name"], pc["ship"],
             pc["shields"], pc["weapon power"],
-            pc["engine"], specials=specials, human=True,
+            pc["engine"], loadout=loadout, human=True,
             pixel_perfect=self.settings.pixel_perfect,
         )
         player.rotate(180, self.theme_loader.ships)
@@ -216,26 +217,26 @@ class Game:
                 if not valid_ships:
                     valid_ships = ship_names
 
-                e_specials = self.theme_loader.get_specials(slot_race)
+                e_loadout = build_race_loadout(slot_race)
                 positions = ((GRID_ROWS, GRID_COLS_EVEN), (1, GRID_COLS_ODD), (GRID_ROWS, 1))
                 angle = 180 if i == 1 else 0
                 enemy = Ship(
                     slot_race, HexGrid.hex_to_coords(*positions[i]), angle,
                     rank, random.choice(valid_captains), random.choice(valid_ships),
                     stats["shields"], stats["weapon power"],
-                    stats["engine"], specials=e_specials,
+                    stats["engine"], loadout=e_loadout,
                     pixel_perfect=self.settings.pixel_perfect,
                 )
                 enemy.rotate(angle, self.theme_loader.ships)
                 b.ships.append(enemy)
                 b.match_stats[enemy] = ScoringSystem.init_ai_stats()
             elif slot == "sentry":
-                e_specials = self.theme_loader.get_specials("sentry")
+                sentry_loadout = build_race_loadout("sentry")
                 positions = ((GRID_ROWS, GRID_COLS_EVEN), (1, GRID_COLS_ODD), (GRID_ROWS, 1))
                 enemy = Ship(
                     "sentry", HexGrid.hex_to_coords(*positions[i]), 0,
                     RANKS[0], "", self.text_manager.load("sentry"),
-                    200, 10, 0, specials=e_specials,
+                    200, 10, 0, loadout=sentry_loadout,
                     pixel_perfect=self.settings.pixel_perfect,
                 )
                 enemy.rotate(0, self.theme_loader.ships)

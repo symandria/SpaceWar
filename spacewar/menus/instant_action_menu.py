@@ -2,6 +2,7 @@ import random
 
 from spacewar.config.constants import RANKS
 from spacewar.entities.ship import Ship
+from spacewar.components.race_configs import build_race_loadout
 from spacewar.menus.menu_actions import MenuAction
 from spacewar.rendering.hex_grid import HexGrid
 from spacewar.systems.scoring import ScoringSystem
@@ -40,11 +41,11 @@ class IAMakePlayer(MenuAction):
     def __call__(self):
         g = self.game
         g.init_battle()
-        specials = g.theme_loader.get_specials(self.race)
+        loadout = build_race_loadout(self.race)
         player = Ship(
             self.race, HexGrid.hex_to_coords(1, 1), 180,
             RANKS[0], self._text("default-captain"), self._text("default-ship"),
-            100, 10, 5, specials=specials, human=True,
+            100, 10, 5, loadout=loadout, human=True,
             pixel_perfect=g.settings.pixel_perfect,
         )
         player.rotate(180, g.theme_loader.ships)
@@ -122,13 +123,13 @@ class IAMakeEnemy(MenuAction):
         positions = ((GRID_ROWS, GRID_COLS_EVEN), (1, GRID_COLS_ODD), (GRID_ROWS, 1))
         pos_idx = len(b.ships) - 1
         angle = 180 if len(b.ships) == 2 and self.race != "sentry" else 0
-        specials = g.theme_loader.get_specials(self.race)
+        loadout = build_race_loadout(self.race)
         enemy = Ship(
             self.race, HexGrid.hex_to_coords(*positions[pos_idx]), angle,
             RANKS[0], e_captain, e_name,
             200 if self.race == "sentry" else 100,
             10, 0 if self.race == "sentry" else 5,
-            specials=specials, pixel_perfect=g.settings.pixel_perfect,
+            loadout=loadout, pixel_perfect=g.settings.pixel_perfect,
         )
         enemy.rotate(angle, g.theme_loader.ships)
         b.ships.append(enemy)
