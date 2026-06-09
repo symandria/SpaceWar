@@ -401,7 +401,7 @@ class Game:
         view_rect = self.viewport.get_view_rect()
         self.screen.blit(ws, (0, 0), view_rect)
 
-        if b.player and move_time == 0:
+        if b.player:
             self._render_fog(b.player, view_rect)
 
         pygame.transform.scale(self.screen, self.settings.window_size, self.display)

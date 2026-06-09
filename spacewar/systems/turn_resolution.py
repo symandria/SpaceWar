@@ -1,4 +1,5 @@
 from spacewar.rendering.hex_grid import HexGrid
+from spacewar.systems.weapons import WeaponType
 
 
 class TurnResolver:
@@ -23,6 +24,12 @@ class TurnResolver:
     @property
     def is_active(self):
         return self.move_time != 0
+
+    def _get_weapon_type(self, ship):
+        return self._combat._get_weapon_type(ship, ship.action)
+
+    def _is_weapon_action(self, action):
+        return action in ("weapon_1", "weapon_2")
 
     def begin_turn(self, battle, sprite_lookup):
         self._ai.decide_actions(battle.ships, battle.player, battle.team_game)
@@ -64,65 +71,70 @@ class TurnResolver:
         if self.move_time == 90:
             self._teleportation.play_sound_if_needed(
                 battle.ships, self._asset_loader)
+
         elif self.move_time == 85:
             for ship in battle.ships:
-                action = ship.action
-                if action in ("torpedo", "weapon_2"):
-                    from spacewar.systems.weapons import WeaponType
-                    wtype = self._combat._get_weapon_type(ship, action)
-                    if wtype in (WeaponType.TORPEDOES, WeaponType.HE_TORPEDO):
-                        self._combat.fire_projectile(
-                            ship, ship.target, battle.torpedoes,
-                            battle.match_stats, battle.player, wtype)
+                if not self._is_weapon_action(ship.action):
+                    continue
+                wtype = self._get_weapon_type(ship)
+                if wtype in (WeaponType.TORPEDOES, WeaponType.HE_TORPEDO):
+                    self._combat.fire_projectile(
+                        ship, ship.target, battle.torpedoes,
+                        battle.match_stats, battle.player, wtype)
+
         elif self.move_time == 80:
             self._teleportation.snap_positions(battle.ships)
+
         elif self.move_time == 70:
             self._teleportation.clear_flags(battle.ships)
+
         elif self._is_phaser_frame():
             if self.move_time == 63:
                 self.phaser_hit_this_turn = False
             step = (self.move_time // 9) - 3
             for ship in battle.ships:
-                action = ship.action
-                if action in ("phaser", "weapon_1"):
+                if not self._is_weapon_action(ship.action):
+                    continue
+                wtype = self._get_weapon_type(ship)
+                if wtype == WeaponType.LAZERS:
                     phaser_data, self.phaser_hit_this_turn = \
-                        self._combat.fire_weapon(
+                        self._combat.fire_hitscan(
                             ship, ship.target, step,
-                            battle.ships, battle.torpedoes, battle.mines,
+                            battle.ships, battle.torpedoes,
                             battle.match_stats, battle.team_game,
-                            battle.player, self.phaser_hit_this_turn)
+                            battle.player, self.phaser_hit_this_turn,
+                            WeaponType.LAZERS)
                     if phaser_data:
                         draw_phasers.append(phaser_data)
-                elif action == "weapon_2":
-                    from spacewar.systems.weapons import WeaponType
-                    wtype = self._combat._get_weapon_type(ship, action)
-                    if wtype == WeaponType.DISRUPTORS and step < 3:
-                        phaser_data, self.phaser_hit_this_turn = \
-                            self._combat.fire_hitscan(
-                                ship, ship.target, step,
-                                battle.ships, battle.torpedoes,
-                                battle.match_stats, battle.team_game,
-                                battle.player, self.phaser_hit_this_turn,
-                                WeaponType.DISRUPTORS)
-                        if phaser_data:
-                            draw_phasers.append(phaser_data)
+                elif wtype == WeaponType.DISRUPTORS and step < 3:
+                    phaser_data, self.phaser_hit_this_turn = \
+                        self._combat.fire_hitscan(
+                            ship, ship.target, step,
+                            battle.ships, battle.torpedoes,
+                            battle.match_stats, battle.team_game,
+                            battle.player, self.phaser_hit_this_turn,
+                            WeaponType.DISRUPTORS)
+                    if phaser_data:
+                        draw_phasers.append(phaser_data)
+
         elif self.move_time == 20:
             for ship in battle.ships:
-                if ship.action in ("weapon_1", "weapon_2", "phaser"):
-                    from spacewar.systems.weapons import WeaponType
-                    wtype = self._combat._get_weapon_type(ship, ship.action)
-                    if wtype == WeaponType.SHOCKWAVE:
-                        self._combat.fire_shockwave(
-                            ship, battle.ships, battle.match_stats,
-                            battle.team_game, battle.player)
-                        self.shockwave_frame = 10
-                    elif wtype == WeaponType.POINT_LAZERS:
-                        phaser_data, _ = self._combat.fire_point_lazers(
-                            ship, ship.target, battle.ships,
-                            battle.match_stats, battle.team_game,
-                            battle.player)
-                        if phaser_data:
-                            draw_phasers.append(phaser_data)
+                if not self._is_weapon_action(ship.action):
+                    continue
+                wtype = self._get_weapon_type(ship)
+                if wtype == WeaponType.SHOCKWAVE:
+                    self._combat.fire_shockwave(
+                        ship, battle.ships, battle.match_stats,
+                        battle.team_game, battle.player)
+                    self.shockwave_frame = 10
+                elif wtype == WeaponType.POINT_LAZERS:
+                    phaser_data, _ = self._combat.fire_point_lazers(
+                        ship, ship.target, battle.ships,
+                        battle.match_stats, battle.team_game,
+                        battle.player)
+                    if phaser_data:
+                        draw_phasers.append(phaser_data)
+
         elif self.move_time == 1:
             for ship in battle.ships:
                 if ship.action == "self-destruct":
@@ -132,10 +144,8 @@ class TurnResolver:
                     ship.shields = min(ship.shields + regen_amount, ship.max_shields)
 
             for ship in battle.ships:
-                action = ship.action
-                if action in ("weapon_1", "weapon_2", "phaser"):
-                    from spacewar.systems.weapons import WeaponType
-                    wtype = self._combat._get_weapon_type(ship, action)
+                if self._is_weapon_action(ship.action):
+                    wtype = self._get_weapon_type(ship)
                     if wtype == WeaponType.MINES and ship.target:
                         self._combat.place_mine(
                             ship, ship.target, battle.mines)

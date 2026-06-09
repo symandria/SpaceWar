@@ -38,7 +38,6 @@ class TestShipCreation:
 
     def test_ablative_ship_has_dr(self, ablative_ship):
         assert ablative_ship.active_dr == 50
-        assert "ablative" in ablative_ship.specials
 
 
 class TestDamageSystem:

@@ -130,10 +130,6 @@ def _apply_race_specials(loadout, specials):
             loadout.equip(basic_engine(acceleration=3))
         elif special == "ambush":
             loadout.equip(ambush_special())
-        elif special == "phaser_focus":
-            pass
-        elif special == "ramming":
-            pass
         elif special == "regeneration" or special == "regeneration_always":
             _update_shield_regen(loadout, 10)
         elif special.startswith("regen_"):

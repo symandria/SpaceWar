@@ -119,20 +119,11 @@ class Ship:
     def specials(self):
         result = []
         if self.active_cloak:
-            if self.active_dr > 0:
-                result.append("cloaking_always")
-            else:
-                result.append("cloaking")
+            result.append("cloaking")
         if self.loadout.has_special("teleportation"):
             result.append("teleportation")
-        if self.acceleration > 2:
-            result.append("acceleration")
         if self.loadout.has_special("ambush"):
             result.append("ambush")
-        if self.active_dr > 0:
-            result.append("ablative")
-        if self.passive_regen > 5:
-            result.append("regeneration")
         return result
 
     def set_image(self, image):
