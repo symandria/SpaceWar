@@ -1,0 +1,27 @@
+average points: 860.0
+average shields: 95.0
+battle-settings:
+- false
+-   - cadet
+    - random
+- null
+- null
+engine: 5
+games played: 1
+kills-borg: 1
+kills-dominion: 0
+kills-federation: 0
+kills-klingon: 0
+kills-sentry: 0
+kills-tholian: 0
+name: Cato Vindi
+phasers hit: 0
+phasers shot: 0
+race: random
+shields: 150
+ship: Nickel Zest
+theme: classic
+torpedoes hit: 4
+torpedoes shot: 9
+weapon power: 5
+xp: 860
