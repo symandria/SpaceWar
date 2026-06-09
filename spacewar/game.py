@@ -3,7 +3,9 @@ import random
 import pygame
 import pygame.gfxdraw
 
-from spacewar.config.constants import RANKS, STATS, SCREEN_SIZE, GRID_ROWS, max_col
+from spacewar.config.constants import (
+    RANKS, STATS, SCREEN_SIZE, GRID_ROWS, GRID_COLS_ODD, GRID_COLS_EVEN, max_col,
+)
 from spacewar.config.settings import GameSettings
 from spacewar.data.asset_loader import AssetLoader
 from spacewar.data.localization import TextManager
@@ -33,6 +35,8 @@ from spacewar.states.resolution_states import (
 from spacewar.ui.selection_list import SelectionList
 from spacewar.ui.infobox import Infobox
 from spacewar.ui.command_box import CommandBox
+from spacewar.rendering.viewport import Viewport, VIEWPORT_SIZE
+from spacewar.entities.map_object import Asteroid, NebulaTile
 
 
 class BattleState:
@@ -80,8 +84,10 @@ class Game:
         self.hex_grid = HexGrid(self.settings.foreground, self.settings.background)
         self.renderer = GameRenderer(self.settings, self.hex_grid)
 
-        self.screen = pygame.Surface(SCREEN_SIZE)
+        self.world_surface = pygame.Surface(SCREEN_SIZE)
+        self.screen = pygame.Surface(VIEWPORT_SIZE)
         self.background = self.hex_grid.build_background()
+        self.viewport = Viewport()
 
         pygame.font.init()
         self.small_font = pygame.font.SysFont("Courier New,Liberation Mono", 12)
@@ -211,7 +217,7 @@ class Game:
                     valid_ships = ship_names
 
                 e_specials = self.theme_loader.get_specials(slot_race)
-                positions = ((14, 10), (1, 11), (14, 1))
+                positions = ((GRID_ROWS, GRID_COLS_EVEN), (1, GRID_COLS_ODD), (GRID_ROWS, 1))
                 angle = 180 if i == 1 else 0
                 enemy = Ship(
                     slot_race, HexGrid.hex_to_coords(*positions[i]), angle,
@@ -225,7 +231,7 @@ class Game:
                 b.match_stats[enemy] = ScoringSystem.init_ai_stats()
             elif slot == "sentry":
                 e_specials = self.theme_loader.get_specials("sentry")
-                positions = ((14, 10), (1, 11), (14, 1))
+                positions = ((GRID_ROWS, GRID_COLS_EVEN), (1, GRID_COLS_ODD), (GRID_ROWS, 1))
                 enemy = Ship(
                     "sentry", HexGrid.hex_to_coords(*positions[i]), 0,
                     RANKS[0], "", self.text_manager.load("sentry"),
@@ -245,8 +251,42 @@ class Game:
                 self.text_manager.load("cancel-team-game"), self.infofont,
                 self.display.get_width(), self.settings.foreground,
                 self.settings.background)
+        self._spawn_map_objects(b)
         self.just_saved = False
         self.selection_list = None
+
+    def _spawn_map_objects(self, battle):
+        occupied = set()
+        for ship in battle.ships:
+            h = HexGrid.coords_to_hex(ship.pos)
+            if h:
+                occupied.add(h)
+
+        asteroid_count = random.randint(3, 8)
+        for _ in range(asteroid_count):
+            for attempt in range(20):
+                row = random.randint(3, GRID_ROWS - 2)
+                col = random.randint(2, max_col(row) - 1)
+                if (row, col) not in occupied:
+                    battle.asteroids.append(Asteroid((row, col)))
+                    occupied.add((row, col))
+                    break
+
+        nebula_types = [NebulaTile.RED, NebulaTile.GREEN, NebulaTile.PURPLE]
+        for ntype in nebula_types:
+            center_row = random.randint(5, GRID_ROWS - 4)
+            center_col = random.randint(3, max_col(center_row) - 2)
+            for dr in range(-1, 2):
+                for dc in range(-1, 2):
+                    r, c = center_row + dr, center_col + dc
+                    if r < 1 or r > GRID_ROWS or c < 1 or c > max_col(r):
+                        continue
+                    if (r, c) in occupied:
+                        continue
+                    neb = NebulaTile((r, c), ntype)
+                    battle.nebulae.append(neb)
+                    battle.nebulae_by_hex[(r, c)] = neb
+                    occupied.add((r, c))
 
     def render_battle(self, draw_phasers=None, show_invalid_destinations=False):
         if draw_phasers is None:
@@ -255,11 +295,12 @@ class Game:
         if not b:
             return
 
+        ws = self.world_surface
         move_time = self.turn_resolver.move_time
         if move_time == 0 and not draw_phasers:
-            self.screen.fill(self.settings.background)
+            ws.fill(self.settings.background)
         else:
-            self.screen.blit(self.background, (0, 0))
+            ws.blit(self.background, (0, 0))
 
         if show_invalid_destinations and b.player:
             for row in range(1, GRID_ROWS + 1):
@@ -267,26 +308,26 @@ class Game:
                     if not b.player.get_valid_destination(
                             row, column, bool(b.player.action)):
                         x, y = HexGrid.hex_to_coords(row, column)
-                        self.screen.blit(self.hex_grid.invalid_surface, (x - 1, y - 1))
+                        ws.blit(self.hex_grid.invalid_surface, (x - 1, y - 1))
 
         for neb in b.nebulae:
-            neb.render(self.screen)
+            neb.render(ws)
         for ast in b.asteroids:
-            ast.render(self.screen)
+            ast.render(ws)
 
         if b.selected:
-            self.screen.blit(
+            ws.blit(
                 self.hex_grid.select_surface,
                 (int(b.selected.pos[0]) - 1, int(b.selected.pos[1]) - 1))
 
         for mine in b.mines:
-            mine.render(self.screen)
+            mine.render(ws)
 
         for torp in b.torpedoes:
-            torp.render(self.screen)
+            torp.render(ws)
 
         for phaser in draw_phasers:
-            pygame.draw.line(self.screen, *phaser)
+            pygame.draw.line(ws, *phaser)
 
         for ship in b.ships:
             if ship == b.player:
@@ -295,10 +336,10 @@ class Game:
                        ship.explode or not b.player or
                        (b.team_game and ship.type == b.player.type))
             if visible:
-                ship.render(self.screen)
+                ship.render(ws)
 
         if b.player:
-            b.player.render(self.screen)
+            b.player.render(ws)
 
         for ship in b.ships:
             if ship.teleport_target:
@@ -308,8 +349,13 @@ class Game:
                     radius = 80 - move_time
                 if radius > 0:
                     pygame.gfxdraw.filled_circle(
-                        self.screen, int(ship.pos[0]) + 4, int(ship.pos[1]) + 4,
+                        ws, int(ship.pos[0]) + 4, int(ship.pos[1]) + 4,
                         radius, (0, 255, 0))
+
+        if b.player:
+            self.viewport.update(b.player.pos, b.player.vision_forward)
+        view_rect = self.viewport.get_view_rect()
+        self.screen.blit(ws, (0, 0), view_rect)
 
         if b.player:
             titlebar = f"H:{b.player.hull} S:{b.player.shields} Spd:{b.player.speed}"

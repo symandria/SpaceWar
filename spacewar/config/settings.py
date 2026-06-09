@@ -3,6 +3,7 @@ import os
 from collections import OrderedDict
 
 from spacewar.config.constants import INI_DEFAULTS, SCREEN_SIZE
+from spacewar.rendering.viewport import VIEWPORT_SIZE
 
 
 class GameSettings:
@@ -10,8 +11,8 @@ class GameSettings:
         pygame_info = _get_display_info()
         default_fullscreen = (pygame_info == (800, 480))
         default_multiplier = min(
-            (pygame_info[0] - (0 if default_fullscreen else 20)) // SCREEN_SIZE[0],
-            (pygame_info[1] - (0 if default_fullscreen else 20)) // SCREEN_SIZE[1],
+            (pygame_info[0] - (0 if default_fullscreen else 20)) // VIEWPORT_SIZE[0],
+            (pygame_info[1] - (0 if default_fullscreen else 20)) // VIEWPORT_SIZE[1],
         )
 
         self._ini = configparser.ConfigParser(dict_type=OrderedDict)
@@ -71,8 +72,8 @@ class GameSettings:
             self.background = (255, 255, 255)
 
         self.window_size = (
-            SCREEN_SIZE[0] * self.window_multiplier,
-            SCREEN_SIZE[1] * self.window_multiplier,
+            VIEWPORT_SIZE[0] * self.window_multiplier,
+            VIEWPORT_SIZE[1] * self.window_multiplier,
         )
 
 

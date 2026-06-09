@@ -37,7 +37,7 @@ class TestCoordsToHex:
 
     def test_out_of_bounds(self):
         assert HexGrid.coords_to_hex((0, 0)) is None
-        assert HexGrid.coords_to_hex((200, 200)) is None
+        assert HexGrid.coords_to_hex((500, 500)) is None
         assert HexGrid.coords_to_hex((-1, 50)) is None
 
 

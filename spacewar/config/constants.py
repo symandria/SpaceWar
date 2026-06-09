@@ -3,9 +3,9 @@ from collections import OrderedDict
 
 import pygame
 
-GRID_ROWS = 14
-GRID_COLS_ODD = 11
-GRID_COLS_EVEN = 10
+GRID_ROWS = 28
+GRID_COLS_ODD = 22
+GRID_COLS_EVEN = 21
 HEX_SPACING_X = 14
 HEX_SPACING_Y = 10
 HEX_OFFSET_X = 7
@@ -28,11 +28,15 @@ SCREEN_SIZE = (
 BITBOX = pygame.mask.Mask((9, 9))
 BITBOX.fill()
 
-SENTRY_INVALID = (
-    (1, 11), (2, 10), (3, 10), (3, 9), (4, 8), (5, 8), (6, 7), (7, 7),
-    (7, 6), (8, 6), (8, 5), (9, 5), (10, 4), (11, 4), (12, 3), (12, 2),
-    (13, 2), (14, 1),
-)
+def _build_sentry_invalid():
+    invalid = set()
+    for row in range(1, GRID_ROWS + 1):
+        for col in range(1, max_col(row) + 1):
+            if row + col > GRID_ROWS + 2:
+                invalid.add((row, col))
+    return tuple(invalid)
+
+SENTRY_INVALID = _build_sentry_invalid()
 
 RANKS = (
     "cadet",

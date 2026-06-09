@@ -19,9 +19,10 @@ class BattleIdleState(GameState):
                     g.selection_list = button.callback()
                     return None
             return None
-        pos = event.pos[0] // g.settings.window_multiplier, \
-            event.pos[1] // g.settings.window_multiplier
-        thex = HexGrid.coords_to_hex(pos)
+        screen_pos = (event.pos[0] // g.settings.window_multiplier,
+                      event.pos[1] // g.settings.window_multiplier)
+        world_pos = g.viewport.screen_to_world(screen_pos)
+        thex = HexGrid.coords_to_hex(world_pos)
         if not thex:
             return None
         if b.player and thex == HexGrid.coords_to_hex(b.player.pos):
@@ -142,9 +143,10 @@ class DestinationSelectState(GameState):
         if event.type != pygame.MOUSEBUTTONUP:
             return None
         g = self.game
-        pos = event.pos[0] // g.settings.window_multiplier, \
-            event.pos[1] // g.settings.window_multiplier
-        thex = HexGrid.coords_to_hex(pos)
+        screen_pos = (event.pos[0] // g.settings.window_multiplier,
+                      event.pos[1] // g.settings.window_multiplier)
+        world_pos = g.viewport.screen_to_world(screen_pos)
+        thex = HexGrid.coords_to_hex(world_pos)
         if thex:
             g.battle.player.movement = thex
             return StateID.COMMAND_ENTRY
@@ -163,9 +165,10 @@ class TargetSelectState(GameState):
         if event.type != pygame.MOUSEBUTTONUP:
             return None
         g = self.game
-        pos = event.pos[0] // g.settings.window_multiplier, \
-            event.pos[1] // g.settings.window_multiplier
-        thex = HexGrid.coords_to_hex(pos)
+        screen_pos = (event.pos[0] // g.settings.window_multiplier,
+                      event.pos[1] // g.settings.window_multiplier)
+        world_pos = g.viewport.screen_to_world(screen_pos)
+        thex = HexGrid.coords_to_hex(world_pos)
         if thex:
             g.battle.player.target = thex
             return StateID.COMMAND_ENTRY

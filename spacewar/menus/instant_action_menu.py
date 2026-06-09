@@ -118,7 +118,8 @@ class IAMakeEnemy(MenuAction):
             e_captain = random.choice(valid_captain_names)
             e_name = random.choice(valid_ship_names)
 
-        positions = ((14, 10), (1, 11), (14, 1))
+        from spacewar.config.constants import GRID_ROWS, GRID_COLS_ODD, GRID_COLS_EVEN
+        positions = ((GRID_ROWS, GRID_COLS_EVEN), (1, GRID_COLS_ODD), (GRID_ROWS, 1))
         pos_idx = len(b.ships) - 1
         angle = 180 if len(b.ships) == 2 and self.race != "sentry" else 0
         specials = g.theme_loader.get_specials(self.race)
