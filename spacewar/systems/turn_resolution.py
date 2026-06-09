@@ -167,6 +167,7 @@ class TurnResolver:
             self.dying = self._death.detect_and_cascade(
                 battle.ships, battle.match_stats, battle.team_game)
             if self.dying:
+                self._death.create_wrecks(self.dying, battle.wrecks)
                 self.move_time = -1
                 self._asset_loader.play_sound("explode")
             else:

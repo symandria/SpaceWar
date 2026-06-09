@@ -36,6 +36,7 @@ from spacewar.states.roguelike_states import RoguelikeMapState, RoguelikeNodeSta
 from spacewar.ui.selection_list import SelectionList
 from spacewar.ui.infobox import Infobox
 from spacewar.ui.command_box import CommandBox
+from spacewar.ui.minimap import Minimap
 from spacewar.rendering.viewport import Viewport, VIEWPORT_SIZE
 from spacewar.entities.map_object import Asteroid, NebulaTile
 from spacewar.components.race_configs import build_race_loadout
@@ -51,6 +52,7 @@ class BattleState:
         self.asteroids = []
         self.nebulae = []
         self.nebulae_by_hex = {}
+        self.wrecks = []
         self.match_stats = {}
         self.team_game = False
         self.player = None
@@ -110,6 +112,7 @@ class Game:
         self.death_system = DeathSystem()
         self.scoring_system = ScoringSystem()
         self.visibility_system = VisibilitySystem()
+        self.minimap = Minimap(48, 40)
         self.turn_resolver = TurnResolver(
             self.movement_system, self.collision_system, self.combat_system,
             self.ai_system, self.teleportation_system, self.cloaking_system,
@@ -348,6 +351,9 @@ class Game:
                 self.hex_grid.select_surface,
                 (int(b.selected.pos[0]) - 1, int(b.selected.pos[1]) - 1))
 
+        for wreck in b.wrecks:
+            wreck.render(ws)
+
         for mine in b.mines:
             mine.render(ws)
 
@@ -368,6 +374,12 @@ class Game:
 
         if b.player:
             b.player.render(ws)
+            if b.player.movement and move_time == 0:
+                start = (int(b.player.pos[0]) + 4, int(b.player.pos[1]) + 4)
+                dest = HexGrid.hex_to_coords(*b.player.movement)
+                end = (dest[0] + 4, dest[1] + 4)
+                pygame.draw.line(ws, (0, 180, 255), start, end, 1)
+                pygame.draw.circle(ws, (0, 180, 255), end, 3, 1)
 
         for ship in b.ships:
             if ship.teleport_target:
@@ -396,6 +408,17 @@ class Game:
             titlebar, True, self.settings.foreground, self.settings.background), (0, 0))
 
         pygame.transform.scale(self.screen, self.settings.window_size, self.display)
+
+        if b.player:
+            mm_scale = max(2, self.settings.window_multiplier)
+            mm_w = self.minimap.width * mm_scale
+            mm_h = self.minimap.height * mm_scale
+            mm_x = self.settings.window_size[0] - mm_w - 4
+            mm_y = 4
+            self.minimap.render(self.display, b, self.viewport.get_view_rect(),
+                                mm_x, mm_y)
+            scaled = pygame.transform.scale(self.minimap.surface, (mm_w, mm_h))
+            self.display.blit(scaled, (mm_x, mm_y))
 
         if b.info_target:
             if self.infobox and self.infobox.target == b.info_target:

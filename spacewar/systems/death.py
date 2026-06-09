@@ -1,4 +1,5 @@
 from spacewar.rendering.hex_grid import HexGrid
+from spacewar.entities.wreck import Wreck
 
 
 class DeathSystem:
@@ -28,6 +29,13 @@ class DeathSystem:
                                     match_stats[ship]["damage"] += self.EXPLOSION_DAMAGE
                                 recheck = True
         return dying
+
+    def create_wrecks(self, dying, wreck_list):
+        for ship in dying:
+            hex_pos = HexGrid.coords_to_hex(ship.pos)
+            if hex_pos:
+                wreck = Wreck(hex_pos, ship.type, ship.rank)
+                wreck_list.append(wreck)
 
     def animate_explosion(self, dying, frame):
         for ship in dying:
