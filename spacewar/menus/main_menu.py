@@ -10,12 +10,13 @@ class MainMenu(MenuAction):
         g = self.game
         g.instant_action = False
         g.player_character = None
+        g.active_run = None
         g.text_manager.active_theme = None
         g.theme_loader.active_theme = None
         g.theme_loader.active_races = ()
         return self._make_list(
             self._text("main-menu-title"),
-            ("Roguelike Run", RoguelikeChooseTheme(g)),
+            ("Roguelike Run", RoguelikeChooseRace(g)),
             (self._text("menu-new character"), NewCharacterMenu(g)),
             (self._text("menu-load character"), LoadCharacterMenu(g)),
             (self._text("menu-instant action"), InstantActionMenu(g)),
@@ -118,26 +119,15 @@ class InstantActionMenu(MenuAction):
             self._text("instant-action-choose theme"), *buttons)
 
 
-class RoguelikeChooseTheme(MenuAction):
-    def __call__(self):
-        g = self.game
-        buttons = [
-            (self._text("theme-" + theme), RoguelikeChooseRace(g, theme))
-            for theme in g.theme_loader.themes
-        ]
-        buttons.append((self._text("menu-cancel"), MainMenu(g)))
-        return self._make_list("Choose Theme", *buttons)
-
-
 class RoguelikeChooseRace(MenuAction):
-    def __init__(self, game, theme):
-        super().__init__(game)
-        self.theme = theme
+    # Classic is the base theme; other theme folders are just dormant
+    # assets and are not offered or used here.
+    THEME = "classic"
 
     def __call__(self):
         g = self.game
-        g.theme_loader.activate_theme(self.theme)
-        g.text_manager.active_theme = self.theme
+        g.theme_loader.activate_theme(self.THEME)
+        g.text_manager.active_theme = self.THEME
         races = g.theme_loader.active_races
         buttons = [
             (self._text(race), RoguelikeStartRun(g, race))

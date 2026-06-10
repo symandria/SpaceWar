@@ -1,4 +1,5 @@
 import pytest
+import pygame
 from spacewar.roguelike.run import Run
 from spacewar.roguelike.inventory import Inventory
 from spacewar.roguelike.sector_map import SectorMap
@@ -13,6 +14,95 @@ from spacewar.roguelike.upgrades import (
     get_upgrade_level, can_upgrade, upgrade_component, get_upgrade_cost_text,
 )
 from spacewar.components.defaults import basic_engine
+from spacewar.entities.ship import Ship
+from spacewar.rendering.hex_grid import HexGrid
+from spacewar.states.resolution_states import GameOverState, TurnResolutionState
+from spacewar.states.state_machine import StateID
+from spacewar.systems.scoring import ScoringSystem
+
+
+class _DummySettings:
+    foreground = (255, 255, 255)
+    background = (0, 0, 0)
+
+
+class _DummyTextManager:
+    def load(self, key):
+        values = {
+            "after-battle-report-player": "{winning_faction} wins\n{quote}",
+            "after-battle-report-other": "{winning_faction} wins\n{quote}",
+            "after-battle-report-draw": "{winning_faction}\n{quote}",
+            "faction-name-federation": "Federation",
+            "victory-quote-federation": "Victory",
+            "rank-cadet": "Cadet",
+            "statistics-ship": "{name} {extras} {total}",
+            "statistics-sentry": "{name} {extras} {total}",
+            "extras-you": "you",
+            "extras-human": "human",
+            "extras-dead": " dead",
+        }
+        return values.get(key, key)
+
+
+class _InactiveResolver:
+    is_active = False
+
+    def tick(self, battle):
+        return []
+
+
+class _Battle:
+    def __init__(self, player, enemies=None):
+        self.ships = [player] + list(enemies or [])
+        self.dead_ships = []
+        self.match_stats = {}
+        self.team_game = False
+        self.home_player = player
+        self.player = player
+
+
+def _make_roguelike_ship(race="federation"):
+    ship = Ship(race, HexGrid.hex_to_coords(7, 5), 180,
+                "cadet", "Captain", "Ship", 100, 10, 5,
+                human=True, pixel_perfect=False)
+    ship.image = pygame.Surface((9, 9))
+    return ship
+
+
+class _DummyThemeLoader:
+    themes = {}
+    active_theme = None
+    active_races = ()
+
+
+def _make_game_for_resolution(battle):
+    class Game:
+        pass
+
+    game = Game()
+    game.battle = battle
+    game.infofont = pygame.font.SysFont("Courier New", 12)
+    game.display = pygame.display.get_surface()
+    game.settings = _DummySettings()
+    game.text_manager = _DummyTextManager()
+    game.turn_resolver = _InactiveResolver()
+    game.scoring_system = ScoringSystem()
+    game.theme_loader = _DummyThemeLoader()
+    game.instant_action = True
+    game.player_character = None
+    game.active_run = None
+    game.message_box = None
+    game.selection_list = None
+
+    from spacewar.ui.selection_list import SelectionList
+
+    def make_selection_list(title, *buttons):
+        return SelectionList(
+            title, game.infofont, game.settings.foreground,
+            game.settings.background, game.display.get_width(), *buttons)
+
+    game.make_selection_list = make_selection_list
+    return game
 
 
 class TestInventory:
@@ -192,6 +282,24 @@ class TestUpgrades:
         assert "common" in text
         assert "scrap" in text
 
+    def test_failed_upgrade_does_not_spend_partial_materials(self):
+        eng = basic_engine()
+        inv = Inventory()
+        inv.add_scrap(500)
+        inv.add_material("common", 10)
+        inv.add_material("uncommon", 2)
+
+        assert upgrade_component(eng, inv)
+        assert upgrade_component(eng, inv)
+        assert inv.materials["uncommon"] == 0
+
+        assert not upgrade_component(eng, inv)
+        assert inv.scrap == 350
+        assert inv.materials["common"] == 5
+        assert inv.materials["uncommon"] == 0
+        assert inv.materials["rare"] == 0
+        assert get_upgrade_level(eng) == 2
+
 
 class TestRun:
     def test_create_run(self):
@@ -241,6 +349,16 @@ class TestRun:
         assert run.hull > 20
         assert run.shields > 30
 
+    def test_rest_reports_actual_healing_at_cap(self):
+        run = Run("federation")
+        run.hull = run.max_hull - 1
+        run.shields = run.max_shields - 2
+        hull_heal, shield_heal = run.rest()
+        assert hull_heal == 1
+        assert shield_heal == 2
+        assert run.hull == run.max_hull
+        assert run.shields == run.max_shields
+
     def test_equip_component(self):
         run = Run("federation")
         eng = basic_engine(acceleration=5)
@@ -255,3 +373,234 @@ class TestRun:
         assert "Tier" in text
         assert "Hull" in text
         assert "Scrap" in text
+
+
+class TestRoguelikeBattleResolution:
+    def test_game_over_transition_preserves_home_player(self):
+        player = _make_roguelike_ship()
+        battle = _Battle(player)
+        battle.match_stats[player] = ScoringSystem.init_player_stats(
+            player, ("federation",), False)
+        game = _make_game_for_resolution(battle)
+
+        result = TurnResolutionState(game).update()
+
+        assert result == StateID.GAME_OVER
+        assert game.battle.home_player is player
+
+    def test_won_battle_applies_surviving_player_stats_to_run(self):
+        run = Run("federation")
+        player = _make_roguelike_ship()
+        player.hull = 37
+        player.shields = 42
+
+        battle = _Battle(player)
+        battle.match_stats[player] = ScoringSystem.init_player_stats(
+            player, ("federation",), False)
+
+        game = _make_game_for_resolution(battle)
+        game.active_run = run
+
+        event = pygame.event.Event(pygame.MOUSEBUTTONUP, pos=(1, 1), button=1)
+        result = GameOverState(game).handle_event(event)
+
+        assert result == StateID.ROGUELIKE_MAP
+        assert run.alive
+        assert run.battles_won == 1
+        assert run.hull == 37
+        assert run.shields == 42
+        assert run.inventory.scrap > 0
+
+    def test_defeat_returns_to_main_menu_with_buttons(self):
+        run = Run("federation")
+        player = _make_roguelike_ship()
+        player.hull = -10
+
+        battle = _Battle(player)
+        battle.ships = []
+        battle.dead_ships = [player]
+        battle.match_stats[player] = ScoringSystem.init_player_stats(
+            player, ("federation",), False)
+
+        game = _make_game_for_resolution(battle)
+        game.active_run = run
+
+        event = pygame.event.Event(pygame.MOUSEBUTTONUP, pos=(1, 1), button=1)
+        result = GameOverState(game).handle_event(event)
+
+        assert result == StateID.MAIN_MENU
+        assert game.active_run is None
+        assert game.selection_list is not None
+        assert game.message_box is not None
+
+
+class TestEncounterRaces:
+    def test_battle_config_restricted_to_available_races(self):
+        races = ("federation", "klingon")
+        for tier in (1, 2, 3):
+            for ntype in (NodeType.BATTLE, NodeType.ELITE, NodeType.BOSS):
+                config = generate_battle_config(tier, ntype, races=races)
+                for _rank, race in config["enemies"]:
+                    assert race in races
+
+    def test_battle_config_defaults_to_classic_races(self):
+        from spacewar.roguelike.encounters import BASE_RACES
+        for tier in (1, 2, 3):
+            config = generate_battle_config(tier, NodeType.BATTLE)
+            for _rank, race in config["enemies"]:
+                assert race in BASE_RACES
+
+    def test_battle_config_excludes_sentry(self):
+        races = ("sentry", "federation")
+        config = generate_battle_config(1, NodeType.BATTLE, races=races)
+        for _rank, race in config["enemies"]:
+            assert race == "federation"
+
+
+class TestSectorMapBoss:
+    def test_exactly_one_boss_node(self):
+        for tier in range(1, 4):
+            for _ in range(10):
+                sm = SectorMap()
+                sm.generate(tier)
+                bosses = [n for n in sm.nodes.values()
+                          if n.node_type == NodeType.BOSS]
+                assert len(bosses) == 1
+
+
+class TestRunHullEdgeCases:
+    def test_survives_battle_at_zero_hull(self):
+        run = Run("federation")
+        loot = run.apply_battle_results(True, 1, 0, 0)
+        assert run.alive
+        assert loot is not None
+        assert run.hull == 0
+
+    def test_death_clamps_negative_stats(self):
+        run = Run("federation")
+        run.apply_battle_results(False, 0, -20, -5)
+        assert not run.alive
+        assert run.hull == 0
+        assert run.shields == 0
+
+    def test_take_hull_damage_exact_zero_survives(self):
+        run = Run("federation")
+        run.take_hull_damage(run.hull)
+        assert run.alive
+        assert run.hull == 0
+
+    def test_take_hull_damage_overkill_dies(self):
+        run = Run("federation")
+        run.take_hull_damage(run.hull + 1)
+        assert not run.alive
+        assert run.hull == 0
+
+
+class TestEquipPowerBudget:
+    def test_equip_rejects_over_power_budget(self):
+        from spacewar.components.base import Component, ComponentSlot
+        run = Run("federation")
+        hog = Component(ComponentSlot.ENGINE, "Power Hog", 99, max_speed=9)
+        run.inventory.add_component(hog)
+        assert not run.equip_component(hog)
+        assert hog in run.inventory.components
+        assert run.loadout.get_component(ComponentSlot.ENGINE).name != "Power Hog"
+
+    def test_equip_menu_action_reports_power_failure(self):
+        from spacewar.components.base import Component, ComponentSlot
+        from spacewar.states.roguelike_states import _EquipAction
+        run = Run("federation")
+        battle = _Battle(_make_roguelike_ship())
+        game = _make_game_for_resolution(battle)
+        game.active_run = run
+        hog = Component(ComponentSlot.ENGINE, "Power Hog", 99, max_speed=9)
+        run.inventory.add_component(hog)
+        result = _EquipAction(game, hog)()
+        assert game.message_box is not None
+        assert hog in run.inventory.components
+        assert result is not None  # refreshed equip menu
+
+    def test_equip_within_budget_swaps_components(self):
+        run = Run("federation")
+        eng = basic_engine(acceleration=5)
+        run.inventory.add_component(eng)
+        assert run.equip_component(eng)
+        assert eng not in run.inventory.components
+        from spacewar.components.base import ComponentSlot
+        old = run.inventory.get_components_for_slot(ComponentSlot.ENGINE)
+        assert len(old) == 1
+
+
+class TestShopAndEvents:
+    def _game_with_run(self):
+        run = Run("federation")
+        battle = _Battle(_make_roguelike_ship())
+        game = _make_game_for_resolution(battle)
+        game.active_run = run
+        return game, run
+
+    def test_buy_component(self):
+        from spacewar.states.roguelike_states import _BuyComponent
+        from spacewar.roguelike.encounters import generate_shop_inventory
+        game, run = self._game_with_run()
+        items = generate_shop_inventory(1)
+        game.roguelike_shop_items = items
+        idx = next(i for i, it in enumerate(items) if "component" in it)
+        comp = items[idx]["component"]
+        run.inventory.add_scrap(items[idx]["price"])
+        _BuyComponent(game, idx)()
+        assert comp in run.inventory.components
+        assert run.inventory.scrap == 0
+        assert comp not in [it.get("component") for it in items]
+
+    def test_buy_component_insufficient_scrap(self):
+        from spacewar.states.roguelike_states import _BuyComponent
+        from spacewar.roguelike.encounters import generate_shop_inventory
+        game, run = self._game_with_run()
+        items = generate_shop_inventory(1)
+        game.roguelike_shop_items = items
+        idx = next(i for i, it in enumerate(items) if "component" in it)
+        count = len(items)
+        _BuyComponent(game, idx)()
+        assert len(items) == count  # nothing removed
+        assert not run.inventory.components
+        assert game.message_box is not None
+
+    def test_buy_repair_restores_ship(self):
+        from spacewar.states.roguelike_states import _BuyRepair
+        from spacewar.roguelike.encounters import generate_shop_inventory
+        game, run = self._game_with_run()
+        items = generate_shop_inventory(1)
+        game.roguelike_shop_items = items
+        idx = next(i for i, it in enumerate(items) if it.get("type") == "repair")
+        run.hull = 5
+        run.shields = 5
+        run.inventory.add_scrap(items[idx]["price"])
+        _BuyRepair(game, idx)()
+        assert run.hull == run.max_hull
+        assert run.shields == run.max_shields
+
+    def test_event_trade_insufficient_scrap(self):
+        from spacewar.states.roguelike_states import _EventChoice
+        game, run = self._game_with_run()
+        result = _EventChoice(game, "trade",
+                              {"cost_scrap": 50,
+                               "materials": {"uncommon": 1}})()
+        assert result == StateID.ROGUELIKE_MAP
+        assert run.inventory.scrap == 0
+        assert run.inventory.materials["uncommon"] == 0
+        assert game.message_box is not None
+
+    def test_event_risk_death_shows_destroyed(self, monkeypatch):
+        import spacewar.states.roguelike_states  # noqa: F401
+        from spacewar.states.roguelike_states import _EventChoice
+        import random as _random
+        game, run = self._game_with_run()
+        monkeypatch.setattr(_random, "random", lambda: 1.0)  # force bad roll
+        result = _EventChoice(game, "risk",
+                              {"good": {"scrap": 10},
+                               "bad": {"hull_damage": 9999},
+                               "chance": 0.6})()
+        assert result == StateID.ROGUELIKE_MAP
+        assert not run.alive
+        assert run.hull == 0

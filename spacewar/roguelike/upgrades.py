@@ -35,8 +35,6 @@ def can_upgrade(component, inventory):
         return False
     next_level = level + 1
     costs = UPGRADE_COSTS[next_level]
-    if not inventory.spend_scrap(0) and inventory.scrap < costs.get("scrap", 0):
-        return False
     for mat, amount in costs.items():
         if mat == "scrap":
             if inventory.scrap < amount:
@@ -48,17 +46,15 @@ def can_upgrade(component, inventory):
 
 def upgrade_component(component, inventory):
     level = get_upgrade_level(component)
-    if level >= 3:
+    if level >= 3 or not can_upgrade(component, inventory):
         return False
     next_level = level + 1
     costs = UPGRADE_COSTS[next_level]
     for mat, amount in costs.items():
         if mat == "scrap":
-            if not inventory.spend_scrap(amount):
-                return False
+            inventory.spend_scrap(amount)
         else:
-            if not inventory.spend_material(mat, amount):
-                return False
+            inventory.spend_material(mat, amount)
 
     mult = UPGRADE_MULTIPLIERS[next_level]
     for key, value in component.stats.items():

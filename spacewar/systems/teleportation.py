@@ -5,6 +5,10 @@ from spacewar.rendering.hex_grid import HexGrid
 class TeleportationSystem:
     def setup(self, ships, sprite_lookup):
         for ship in ships:
+            if ship.movement is None:
+                ship.move_target = None
+                ship.speed = 0
+                continue
             has_teleport = ship.loadout.has_special("teleportation")
             if has_teleport and ship.teleport_cooldown > 0:
                 has_teleport = False

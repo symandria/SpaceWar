@@ -160,7 +160,9 @@ class _NodeAction(_MenuActionBase):
         run.sector_map.move_to(self.node)
 
         if self.node.node_type in (NodeType.BATTLE, NodeType.ELITE, NodeType.BOSS):
-            config = generate_battle_config(run.current_tier, self.node.node_type)
+            config = generate_battle_config(
+                run.current_tier, self.node.node_type,
+                races=g.theme_loader.active_races)
             _start_roguelike_battle(g, run, config)
             return StateID.BATTLE_IDLE
 
@@ -208,7 +210,9 @@ class _ViewShipAction(_MenuActionBase):
         lines = [f"=== {run.race.title()} ==="]
         lines.append(f"Hull: {run.hull}/{run.max_hull}  "
                      f"Shields: {run.shields}/{run.max_shields}")
-        lines.append(f"Weapon Power: {run.weapon_power}")
+        lines.append(f"Weapon Power: {run.weapon_power}  "
+                     f"Power: {run.loadout.total_power_cost()}"
+                     f"/{run.loadout.power_budget()}")
 
         eng = run.loadout.get_component(ComponentSlot.ENGINE)
         if eng:
@@ -292,9 +296,13 @@ class _EquipMenuAction(_MenuActionBase):
             current = run.loadout.get_component(comp.slot)
             current_name = current.name if current else "Empty"
             label = f"{comp.name} [{slot_name}] (replaces: {current_name})"
+            if not run.loadout.can_equip(comp):
+                label += " [no power]"
             buttons.append((label, _EquipAction(g, comp)))
         buttons.append(("Back", _InventoryAction(g)))
-        return self._make_list("Equip Component", *buttons)
+        header = (f"Equip Component\nPower: {run.loadout.total_power_cost()}"
+                  f"/{run.loadout.power_budget()}")
+        return self._make_list(header, *buttons)
 
 
 class _EquipAction(_MenuActionBase):
@@ -305,13 +313,21 @@ class _EquipAction(_MenuActionBase):
     def __call__(self):
         g = self.game
         run = g.active_run
-        run.equip_component(self.component)
         from spacewar.ui.messagebox import Messagebox
-        g.message_box = Messagebox(
-            f"Equipped: {self.component.name}",
-            g.infofont, g.display.get_width(),
-            g.settings.foreground, g.settings.background)
-        return None
+        if run.equip_component(self.component):
+            g.message_box = Messagebox(
+                f"Equipped: {self.component.name}",
+                g.infofont, g.display.get_width(),
+                g.settings.foreground, g.settings.background)
+        else:
+            g.message_box = Messagebox(
+                f"Not enough power for {self.component.name}!\n"
+                f"Power: {run.loadout.total_power_cost()}"
+                f"/{run.loadout.power_budget()}\n"
+                f"Upgrade your power source to increase the budget.",
+                g.infofont, g.display.get_width(),
+                g.settings.foreground, g.settings.background)
+        return _EquipMenuAction(g)()
 
 
 class _UpgradeMenuAction(_MenuActionBase):
@@ -497,6 +513,8 @@ def _start_roguelike_battle(game, run, config):
 
     game.roguelike_battle_config = config
     game.instant_action = True
+    game.selection_list = None
+    game.message_box = None
 
 
 def _show_shop(game, run, items):
@@ -662,17 +680,29 @@ class _EventChoice(_MenuActionBase):
                 run.inventory.add_scrap(good.get("scrap", 0))
                 for mat, amount in good.get("materials", {}).items():
                     run.inventory.add_material(mat, amount)
+                from spacewar.roguelike.loot import format_loot
+                loot_text = format_loot({
+                    "scrap": good.get("scrap", 0),
+                    "materials": good.get("materials", {}),
+                    "components": []})
                 g.message_box = Messagebox(
-                    f"Lucky find!\nScrap: +{good.get('scrap', 0)}",
+                    f"Lucky find!\n{loot_text}",
                     g.infofont, g.display.get_width(),
                     g.settings.foreground, g.settings.background)
             else:
                 bad = self.data.get("bad", {})
                 dmg = bad.get("hull_damage", 0)
                 run.take_hull_damage(dmg)
+                if run.alive:
+                    text = (f"Trap! Hull damage: {dmg}\n"
+                            f"Hull: {run.hull}/{run.max_hull}")
+                else:
+                    text = (f"Trap! Hull damage: {dmg}\n\n"
+                            f"Your ship was destroyed.\n"
+                            f"Battles won: {run.battles_won}\n"
+                            f"Total kills: {run.total_kills}")
                 g.message_box = Messagebox(
-                    f"Trap! Hull damage: {dmg}\nHull: {run.hull}/{run.max_hull}",
-                    g.infofont, g.display.get_width(),
+                    text, g.infofont, g.display.get_width(),
                     g.settings.foreground, g.settings.background)
             return StateID.ROGUELIKE_MAP
 

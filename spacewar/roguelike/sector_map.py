@@ -43,8 +43,11 @@ class SectorMap:
         type_pool = self._build_type_pool(tier)
 
         for row in range(1, rows_per_tier):
-            num_nodes = random.randint(2, cols)
-            positions = sorted(random.sample(range(cols), num_nodes))
+            if row == rows_per_tier - 1:
+                positions = [1]
+            else:
+                num_nodes = random.randint(2, cols)
+                positions = sorted(random.sample(range(cols), num_nodes))
             row_nodes = []
 
             for col_idx in positions:

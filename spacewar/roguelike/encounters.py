@@ -44,11 +44,9 @@ BOSS_RANKS = {
     3: "fleet admiral",
 }
 
-TIER_RACES = {
-    1: ["federation", "klingon", "tholian", "dominion", "borg"],
-    2: ["earth", "minbari", "narn", "centauri", "shadow"],
-    3: ["terran", "psiloth", "zlorg", "wental", "riftbound"],
-}
+# Classic is the base theme; difficulty scales by rank/count per tier,
+# not by race.
+BASE_RACES = ("federation", "klingon", "tholian", "dominion", "borg")
 
 ENVIRONMENTS = {
     "clear": {"asteroids": (0, 2), "nebula_red": 0, "nebula_green": 0, "nebula_purple": 0},
@@ -61,8 +59,11 @@ ENVIRONMENTS = {
 }
 
 
-def generate_battle_config(tier, node_type=NodeType.BATTLE):
-    races = TIER_RACES.get(tier, TIER_RACES[1])
+def generate_battle_config(tier, node_type=NodeType.BATTLE, races=None):
+    if races:
+        races = [r for r in races if r != "sentry"]
+    else:
+        races = list(BASE_RACES)
     ranks = TIER_RANKS.get(tier, TIER_RANKS[1])
 
     if node_type == NodeType.BOSS:

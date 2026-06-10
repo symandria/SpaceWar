@@ -26,7 +26,6 @@ class TurnResolutionState(GameState):
                 g.message_box = Messagebox(
                     result_text, g.infofont, g.display.get_width(),
                     g.settings.foreground, g.settings.background)
-                g.battle.home_player = None
                 return StateID.GAME_OVER
             elif g.battle.player is None:
                 return StateID.SPECTATING
@@ -98,7 +97,6 @@ class SpectatingState(GameState):
                 g.message_box = Messagebox(
                     result_text, g.infofont, g.display.get_width(),
                     g.settings.foreground, g.settings.background)
-                g.battle.home_player = None
                 return StateID.GAME_OVER
             return None
         if self.rapid_end and not g.message_box and not g.selection_list:
@@ -141,6 +139,8 @@ class GameOverState(GameState):
                     g.infofont, g.display.get_width(),
                     g.settings.foreground, g.settings.background)
                 g.active_run = None
+                from spacewar.menus.main_menu import MainMenu
+                g.selection_list = MainMenu(g)()
                 return StateID.MAIN_MENU
             elif loot:
                 from spacewar.roguelike.loot import format_loot
