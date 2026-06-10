@@ -52,6 +52,7 @@ STAT_DISPLAY = {
     "ability_type": "Ability",
     "teleport_range": "Teleport Range",
     "recharge": "Recharge (turns)",
+    "blink": "Blink (in-move hop)",
     "duration": "Duration (hexes)",
     "damage_multiplier": "Damage Mult",
 }

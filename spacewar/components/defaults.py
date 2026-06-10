@@ -79,6 +79,16 @@ def teleportation_special(teleport_range=10, recharge=3):
     )
 
 
+def blink_drive_special(teleport_range=3, recharge=3):
+    # Short-hop teleporter: instead of replacing your whole move, the
+    # blink is spliced into it - hop up to 3 hexes, then fly the rest.
+    return Component(
+        ComponentSlot.SPECIAL, "Blink Drive", 3,
+        ability_type="teleportation", blink=True,
+        teleport_range=teleport_range, recharge=recharge,
+    )
+
+
 def phasing_special(duration=3, recharge=3):
     return Component(
         ComponentSlot.SPECIAL, "Phasing Device", 3,

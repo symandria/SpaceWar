@@ -75,12 +75,17 @@ def _random_special(tier):
     track on cloaking devices and stealth modules, not a special.)"""
     from spacewar.components.defaults import (
         phasing_special, teleportation_special, stealth_module_special,
+        blink_drive_special,
     )
     comp = random.choice([
         phasing_special, teleportation_special, stealth_module_special,
+        blink_drive_special,
     ])()
     comp.name = f"Salvaged {comp.name} Mk{tier}"
     comp.power_cost = power_cost_for_tier(comp.power_cost, tier)
+    # Teleporters and stealth modules spend tier points on their own
+    # tracks (range/cooldown, stealth/ambush); fixed gear ignores them.
+    allocate_upgrade_points(comp, base_points_for_tier(tier))
     return comp
 
 
@@ -134,13 +139,15 @@ def generate_anomaly_component(tier, quality=1):
     host nebula's danger) adds bonus points or upgrades the roll."""
     from spacewar.components.defaults import (
         phasing_special, teleportation_special, stealth_module_special,
+        blink_drive_special,
     )
     roll = random.random()
     if roll < 0.40:
         comp = random.choice([
-            phasing_special, teleportation_special,
+            phasing_special, teleportation_special, blink_drive_special,
         ])()
         comp.name = f"Anomalous {comp.name}"
+        allocate_upgrade_points(comp, quality)
         return comp
     if roll < 0.60:
         # Pure passive-stealth special (strength 3) that may roll its

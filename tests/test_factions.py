@@ -668,8 +668,8 @@ class TestAmbushUpgrades:
                 break
         assert comp.get("ambush_bonus", 0) > 0
 
-    def test_other_specials_not_upgradeable(self):
-        from spacewar.components.defaults import teleportation_special
+    def test_fixed_specials_not_upgradeable(self):
+        from spacewar.components.defaults import phasing_special
         from spacewar.roguelike.upgrades import can_upgrade
 
         class _RichInventory:
@@ -678,7 +678,7 @@ class TestAmbushUpgrades:
             def has_materials(self, mat, amount):
                 return True
 
-        assert not can_upgrade(teleportation_special(), _RichInventory())
+        assert not can_upgrade(phasing_special(), _RichInventory())
 
     def test_stealth_module_stacks_passive_stealth(self):
         from spacewar.components.defaults import stealth_module_special
@@ -720,6 +720,84 @@ class TestAmbushUpgrades:
                 assert comp.get("passive_stealth", 0) >= 3
                 return
         assert False, "no anomalous stealth module in 300 rolls"
+
+
+class TestTeleporterUpgrades:
+    def test_teleporter_points_buy_range_or_cooldown(self):
+        from spacewar.components.defaults import teleportation_special
+        from spacewar.roguelike.upgrades import allocate_upgrade_points
+        saw_range = saw_recharge = False
+        for _ in range(100):
+            comp = teleportation_special()
+            allocate_upgrade_points(comp, 2)
+            if comp.get("teleport_range") > 10:
+                saw_range = True
+            if comp.get("recharge") < 3:
+                saw_recharge = True
+            if saw_range and saw_recharge:
+                break
+        assert saw_range and saw_recharge
+
+    def test_recharge_never_below_one(self):
+        from spacewar.components.defaults import teleportation_special
+        from spacewar.roguelike.upgrades import allocate_upgrade_points
+        comp = teleportation_special()
+        allocate_upgrade_points(comp, 50)
+        assert comp.get("recharge") >= 1
+
+    def test_blink_drive_defaults(self):
+        from spacewar.components.defaults import blink_drive_special
+        comp = blink_drive_special()
+        assert comp.get("ability_type") == "teleportation"
+        assert comp.get("blink") is True
+        assert comp.get("teleport_range") == 3
+
+    def test_blink_drives_drop(self):
+        from spacewar.roguelike.loot import _random_special
+        for _ in range(200):
+            comp = _random_special(1)
+            if comp.get("blink"):
+                return
+        assert False, "no blink drive dropped in 200 rolls"
+
+    def _blink_ship(self, row=10, col=5):
+        from spacewar.components.defaults import blink_drive_special
+        ship = _ship(row=row, col=col)
+        ship.loadout.equip(blink_drive_special())
+        return ship
+
+    def test_blink_splices_into_movement(self):
+        from spacewar.systems.teleportation import TeleportationSystem
+        ship = self._blink_ship()
+        # 7 hexes: beyond flight reach (speed 2 + accel 2 = 4), but
+        # blink 3 + fly 4 covers it.
+        ship.movement = (10, 12)
+        TeleportationSystem().setup([ship], {})
+        assert getattr(ship, 'blinked', False) is True
+        assert ship.teleport_cooldown == 3
+        assert ship.teleport_target is None  # not a full teleport
+        new_hex = HexGrid.coords_to_hex(ship.pos)
+        assert 1 <= HexGrid.hex_distance((10, 5), new_hex) <= 3
+        assert ship.move_target is not None  # still flies the rest
+        assert ship.speed <= 4
+
+    def test_no_blink_when_flight_suffices(self):
+        from spacewar.systems.teleportation import TeleportationSystem
+        ship = self._blink_ship()
+        ship.movement = (10, 8)  # 3 hexes: normal flight
+        TeleportationSystem().setup([ship], {})
+        assert not getattr(ship, 'blinked', False)
+        assert ship.teleport_cooldown == 0
+        assert HexGrid.coords_to_hex(ship.pos) == (10, 5)
+
+    def test_blink_respects_cooldown(self):
+        from spacewar.systems.teleportation import TeleportationSystem
+        ship = self._blink_ship()
+        ship.teleport_cooldown = 2
+        ship.movement = (10, 12)
+        TeleportationSystem().setup([ship], {})
+        assert not getattr(ship, 'blinked', False)
+        assert HexGrid.coords_to_hex(ship.pos) == (10, 5)
 
 
 class TestBeamColors:

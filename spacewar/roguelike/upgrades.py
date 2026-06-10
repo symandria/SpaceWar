@@ -44,15 +44,19 @@ COMPONENT_STAT_STEPS = {
         "passive_stealth": (1, 1),
         "ambush_bonus": (10, 1),  # +10% strike-from-cloak damage
     },
-    # Specials are normally fixed, but the Stealth Module can grow its
-    # passive stealth and ambush bonus.
+    # Specials are normally fixed; the Stealth Module grows passive
+    # stealth / ambush, and teleporters grow range or shed cooldown.
     ComponentSlot.SPECIAL: {
         "passive_stealth": (1, 1),
         "ambush_bonus": (10, 1),
+        "teleport_range": (1, 1),
+        "recharge": (-1, 1),
     },
     ComponentSlot.SPECIAL_2: {
         "passive_stealth": (1, 1),
         "ambush_bonus": (10, 1),
+        "teleport_range": (1, 1),
+        "recharge": (-1, 1),
     },
     ComponentSlot.POWER_SOURCE: {"power_provided": (3, 1)},
 }
@@ -62,6 +66,12 @@ STAT_CAPS = {
     "turning_degrees": 360,
     "active_dr": 50,
     "ambush_bonus": 300,
+    "teleport_range": 15,
+}
+
+# Decreasing stats (negative steps) can't drop below these.
+STAT_FLOORS = {
+    "recharge": 1,
 }
 
 SPECIAL_SLOTS = (ComponentSlot.SPECIAL, ComponentSlot.SPECIAL_2)
@@ -69,12 +79,15 @@ SPECIAL_SLOTS = (ComponentSlot.SPECIAL, ComponentSlot.SPECIAL_2)
 
 def _stat_allowed(component, stat):
     """Ambush only grows on cloaking devices and ambush-capable gear;
-    special-slot stealth stats only on the Stealth Module."""
+    special-slot stat tracks only apply to gear that has them."""
     if stat == "ambush_bonus":
         return bool(component.get("active_cloak") or
                     component.get("ambush_capable"))
-    if component.slot in SPECIAL_SLOTS and stat == "passive_stealth":
-        return component.get("passive_stealth", 0) > 0
+    if component.slot in SPECIAL_SLOTS:
+        if stat == "passive_stealth":
+            return component.get("passive_stealth", 0) > 0
+        if stat in ("teleport_range", "recharge"):
+            return component.get("ability_type") == "teleportation"
     return True
 
 
@@ -89,6 +102,8 @@ def allocate_upgrade_points(component, points):
             if cost <= remaining and (
                 stat not in STAT_CAPS
                 or component.stats.get(stat, 0) + step <= STAT_CAPS[stat])
+            and (stat not in STAT_FLOORS
+                 or component.stats.get(stat, 0) + step >= STAT_FLOORS[stat])
             and _stat_allowed(component, stat)
         ]
         if not choices:
