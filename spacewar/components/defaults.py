@@ -46,20 +46,15 @@ def basic_torpedoes():
     )
 
 
-def basic_stealth(active_cloak=False, ambush=False):
-    # Ambush is a property of (some) cloaking devices, not a separate
-    # special: striking from cloak deals +ambush_bonus% damage, and
-    # upgrades can raise it by +10% per point.
-    if ambush:
-        active_cloak = True
+def basic_stealth(active_cloak=False):
+    # Cloaking devices start with 0% ambush bonus; both passive
+    # stealth and ambush (+10% strike-from-cloak damage per point)
+    # are upgrade choices for them.
     power = 3 if active_cloak else 1
-    if ambush:
-        power = 4
-    stats = {"passive_stealth": 0, "active_cloak": active_cloak}
-    if ambush:
-        stats["ambush_bonus"] = 200  # 3x strike out of cloak
-    name = "Ambush Cloaking Device" if ambush else "Basic Stealth"
-    return Component(ComponentSlot.STEALTH, name, power, **stats)
+    return Component(
+        ComponentSlot.STEALTH, "Basic Stealth", power,
+        passive_stealth=0, active_cloak=active_cloak, ambush_bonus=0,
+    )
 
 
 def basic_power_source():
@@ -89,6 +84,16 @@ def phasing_special(duration=3, recharge=3):
         ComponentSlot.SPECIAL, "Phasing Device", 3,
         ability_type="phasing",
         duration=duration, recharge=recharge,
+    )
+
+
+def stealth_module_special():
+    # Pure passive-stealth special (strength 3); it can also take
+    # ambush upgrades, which stack with any other ambush bonuses.
+    return Component(
+        ComponentSlot.SPECIAL, "Stealth Module", 2,
+        ability_type="stealth_module",
+        passive_stealth=3, ambush_bonus=0, ambush_capable=True,
     )
 
 
@@ -132,7 +137,9 @@ def _apply_race_specials(loadout, specials):
         elif special == "acceleration" or special == "acceleration_always":
             loadout.equip(basic_engine(acceleration=3))
         elif special == "ambush":
-            loadout.equip(basic_stealth(ambush=True))
+            cloak = basic_stealth(active_cloak=True)
+            cloak.stats["ambush_bonus"] = 30  # 3 points of ambush
+            loadout.equip(cloak)
         elif special == "regeneration" or special == "regeneration_always":
             _update_shield_regen(loadout, 10)
         elif special.startswith("regen_"):

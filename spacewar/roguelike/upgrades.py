@@ -44,6 +44,16 @@ COMPONENT_STAT_STEPS = {
         "passive_stealth": (1, 1),
         "ambush_bonus": (10, 1),  # +10% strike-from-cloak damage
     },
+    # Specials are normally fixed, but the Stealth Module can grow its
+    # passive stealth and ambush bonus.
+    ComponentSlot.SPECIAL: {
+        "passive_stealth": (1, 1),
+        "ambush_bonus": (10, 1),
+    },
+    ComponentSlot.SPECIAL_2: {
+        "passive_stealth": (1, 1),
+        "ambush_bonus": (10, 1),
+    },
     ComponentSlot.POWER_SOURCE: {"power_provided": (3, 1)},
 }
 
@@ -54,9 +64,18 @@ STAT_CAPS = {
     "ambush_bonus": 300,
 }
 
-# Stats that can only be raised on components that already have them:
-# plain stealth plating can't grow an ambush system from nothing.
-GATED_STATS = ("ambush_bonus",)
+SPECIAL_SLOTS = (ComponentSlot.SPECIAL, ComponentSlot.SPECIAL_2)
+
+
+def _stat_allowed(component, stat):
+    """Ambush only grows on cloaking devices and ambush-capable gear;
+    special-slot stealth stats only on the Stealth Module."""
+    if stat == "ambush_bonus":
+        return bool(component.get("active_cloak") or
+                    component.get("ambush_capable"))
+    if component.slot in SPECIAL_SLOTS and stat == "passive_stealth":
+        return component.get("passive_stealth", 0) > 0
+    return True
 
 
 def allocate_upgrade_points(component, points):
@@ -70,8 +89,7 @@ def allocate_upgrade_points(component, points):
             if cost <= remaining and (
                 stat not in STAT_CAPS
                 or component.stats.get(stat, 0) + step <= STAT_CAPS[stat])
-            and (stat not in GATED_STATS
-                 or component.stats.get(stat, 0) > 0)
+            and _stat_allowed(component, stat)
         ]
         if not choices:
             break
@@ -89,8 +107,11 @@ def can_upgrade(component, inventory):
     level = get_upgrade_level(component)
     if level >= MAX_UPGRADE_LEVEL:
         return False
-    if not COMPONENT_STAT_STEPS.get(component.slot):
+    steps = COMPONENT_STAT_STEPS.get(component.slot)
+    if not steps:
         return False
+    if not any(_stat_allowed(component, stat) for stat in steps):
+        return False  # e.g. a teleporter in a special bay
     next_level = level + 1
     costs = UPGRADE_COSTS[next_level]
     for mat, amount in costs.items():

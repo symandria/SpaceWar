@@ -254,11 +254,16 @@ class _ViewShipAction(_MenuActionBase):
 
         stealth = run.loadout.get_component(ComponentSlot.STEALTH)
         if stealth:
-            parts = [f"Passive {stealth.get('passive_stealth', 0)}"]
+            # Stealth modules in special bays stack with the plating.
+            total_passive = sum(
+                c.get("passive_stealth", 0) or 0 for c in run.loadout)
+            total_ambush = sum(
+                c.get("ambush_bonus", 0) or 0 for c in run.loadout)
+            parts = [f"Passive {total_passive}"]
             if stealth.get("active_cloak"):
                 parts.append("Cloak ready")
-            if stealth.get("ambush_bonus", 0) > 0:
-                parts.append(f"Ambush +{stealth.get('ambush_bonus')}%")
+            if total_ambush > 0:
+                parts.append(f"Ambush +{total_ambush}%")
             lines.append(f"Stealth: {', '.join(parts)}")
 
         title = "\n".join(lines)
@@ -419,7 +424,7 @@ class _UpgradeMenuAction(_MenuActionBase):
         run = g.active_run
         from spacewar.roguelike.upgrades import (
             get_upgrade_level, can_upgrade, get_upgrade_cost_text,
-            COMPONENT_STAT_STEPS, MAX_UPGRADE_LEVEL,
+            COMPONENT_STAT_STEPS, MAX_UPGRADE_LEVEL, _stat_allowed,
         )
         from spacewar.menus.component_menu import SLOT_ORDER, SLOT_LABELS
 
@@ -432,7 +437,12 @@ class _UpgradeMenuAction(_MenuActionBase):
         buttons = []
         for slot in SLOT_ORDER:
             comp = run.loadout.get_component(slot)
-            if not comp or not COMPONENT_STAT_STEPS.get(slot):
+            steps = COMPONENT_STAT_STEPS.get(slot)
+            if not comp or not steps:
+                continue
+            # Fixed gear (teleporters, phasing, empty bays) has no
+            # upgradeable stats; don't list it.
+            if not any(_stat_allowed(comp, stat) for stat in steps):
                 continue
             lvl = get_upgrade_level(comp)
             label = SLOT_LABELS.get(slot, slot.value)

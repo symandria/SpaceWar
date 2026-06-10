@@ -106,7 +106,8 @@ class Ship:
 
     @property
     def passive_stealth(self):
-        return self.loadout.get_stat(ComponentSlot.STEALTH, "passive_stealth", 0)
+        # Stealth plating plus any special-slot stealth modules.
+        return sum(c.get("passive_stealth", 0) or 0 for c in self.loadout)
 
     @property
     def vision_forward(self):
@@ -135,7 +136,7 @@ class Ship:
             result.append("cloaking")
         if self.loadout.has_special("teleportation"):
             result.append("teleportation")
-        if self.loadout.get_stat(ComponentSlot.STEALTH, "ambush_bonus", 0) > 0:
+        if any((c.get("ambush_bonus", 0) or 0) > 0 for c in self.loadout):
             result.append("ambush")
         return result
 

@@ -31,13 +31,12 @@ class CombatSystem:
             return None
 
     def _get_ambush_multiplier(self, who):
-        """Ambush lives on the cloaking device: striking from cloak
-        deals +ambush_bonus% damage (200 base = 3x, +10%/upgrade)."""
+        """Striking from cloak deals +ambush_bonus% damage. The bonus
+        starts at 0 and is bought with upgrades (+10% per point);
+        bonuses from every equipped component stack."""
         if not who.was_cloaked:
             return 1
-        from spacewar.components.base import ComponentSlot
-        stealth = who.loadout.get_component(ComponentSlot.STEALTH)
-        bonus = stealth.get("ambush_bonus", 0) if stealth else 0
+        bonus = sum(c.get("ambush_bonus", 0) or 0 for c in who.loadout)
         if bonus <= 0:
             return 1
         if not who.cloaked:

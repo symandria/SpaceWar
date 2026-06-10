@@ -71,13 +71,13 @@ def generate_salvage_loot(tier):
 
 def _random_special(tier):
     """Every special ability type drops somewhere in the world.
-    (Tractor beams are standard equipment, and ambush is a property
-    of cloaking devices, not a separate special.)"""
+    (Tractor beams are standard equipment, and ambush is an upgrade
+    track on cloaking devices and stealth modules, not a special.)"""
     from spacewar.components.defaults import (
-        phasing_special, teleportation_special,
+        phasing_special, teleportation_special, stealth_module_special,
     )
     comp = random.choice([
-        phasing_special, teleportation_special,
+        phasing_special, teleportation_special, stealth_module_special,
     ])()
     comp.name = f"Salvaged {comp.name} Mk{tier}"
     comp.power_cost = power_cost_for_tier(comp.power_cost, tier)
@@ -111,16 +111,8 @@ def _random_component(tier):
         base_name = stats["display_name"]
     elif slot == ComponentSlot.STEALTH:
         has_cloak = random.random() < 0.3
-        # Some cloaking devices come with the ambush property baked
-        # in: +200% damage striking from cloak, upgradeable +10%/point.
-        has_ambush = has_cloak and random.random() < 0.4
-        comp = basic_stealth(active_cloak=has_cloak, ambush=has_ambush)
-        if has_ambush:
-            base_name = "Ambush Cloaking Device"
-        elif has_cloak:
-            base_name = "Cloaking Device"
-        else:
-            base_name = "Stealth Plating"
+        comp = basic_stealth(active_cloak=has_cloak)
+        base_name = "Cloaking Device" if has_cloak else "Stealth Plating"
     elif slot == ComponentSlot.POWER_SOURCE:
         comp, base_name = basic_power_source(), "Reactor"
     else:
@@ -129,6 +121,11 @@ def _random_component(tier):
     comp.name = f"Salvaged {base_name} Mk{tier}"
     comp.power_cost = power_cost_for_tier(comp.power_cost, tier)
     allocate_upgrade_points(comp, base_points_for_tier(tier))
+    # Beyond T0, some cloaks roll their points into ambush, some into
+    # passive stealth; name the ambush ones so they read at a glance.
+    if comp.slot == ComponentSlot.STEALTH and \
+            comp.get("ambush_bonus", 0) > 0:
+        comp.name = f"Salvaged Ambush Cloaking Device Mk{tier}"
     return comp
 
 
@@ -136,7 +133,7 @@ def generate_anomaly_component(tier, quality=1):
     """Anomaly loot: gear with special properties. Quality (from the
     host nebula's danger) adds bonus points or upgrades the roll."""
     from spacewar.components.defaults import (
-        phasing_special, teleportation_special,
+        phasing_special, teleportation_special, stealth_module_special,
     )
     roll = random.random()
     if roll < 0.40:
@@ -146,13 +143,12 @@ def generate_anomaly_component(tier, quality=1):
         comp.name = f"Anomalous {comp.name}"
         return comp
     if roll < 0.60:
-        has_cloak = random.random() < 0.25 + quality * 0.05
-        # Anomalous cloaks always carry the ambush property.
-        comp = basic_stealth(active_cloak=has_cloak, ambush=has_cloak)
-        comp.stats["passive_stealth"] = 3
-        comp.name = "Anomalous Ambush Cloak" if has_cloak \
-            else "Anomalous Stealth Plating"
+        # Pure passive-stealth special (strength 3) that may roll its
+        # bonus points into ambush potential.
+        comp = stealth_module_special()
+        comp.name = "Anomalous Stealth Module"
         comp.power_cost = power_cost_for_tier(comp.power_cost, tier)
+        allocate_upgrade_points(comp, quality * 2)
         return comp
     comp = _random_component(tier)
     if comp:
