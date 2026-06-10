@@ -257,6 +257,8 @@ class _ViewShipAction(_MenuActionBase):
             parts = [f"Passive {stealth.get('passive_stealth', 0)}"]
             if stealth.get("active_cloak"):
                 parts.append("Cloak ready")
+            if stealth.get("ambush_bonus", 0) > 0:
+                parts.append(f"Ambush +{stealth.get('ambush_bonus')}%")
             lines.append(f"Stealth: {', '.join(parts)}")
 
         title = "\n".join(lines)

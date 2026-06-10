@@ -1,7 +1,7 @@
 from spacewar.components.base import Component, ComponentSlot
 from spacewar.components.defaults import (
     build_default_loadout, basic_engine, basic_shields, basic_stealth,
-    teleportation_special, ambush_special, no_special,
+    teleportation_special, no_special,
 )
 
 

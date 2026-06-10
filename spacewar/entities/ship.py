@@ -135,7 +135,7 @@ class Ship:
             result.append("cloaking")
         if self.loadout.has_special("teleportation"):
             result.append("teleportation")
-        if self.loadout.has_special("ambush"):
+        if self.loadout.get_stat(ComponentSlot.STEALTH, "ambush_bonus", 0) > 0:
             result.append("ambush")
         return result
 

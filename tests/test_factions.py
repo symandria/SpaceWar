@@ -448,21 +448,21 @@ class TestDisruptorVolley:
 class TestDualSpecialSlots:
     def test_two_specials_equip_side_by_side(self):
         from spacewar.components.defaults import (
-            build_default_loadout, ambush_special, phasing_special,
+            build_default_loadout, teleportation_special, phasing_special,
         )
         loadout = build_default_loadout()
-        loadout.equip(ambush_special())
+        loadout.equip(teleportation_special())
         loadout.equip(phasing_special())
-        assert loadout.has_special("ambush")
+        assert loadout.has_special("teleportation")
         assert loadout.has_special("phasing")
         assert len(loadout.get_specials()) == 2
 
     def test_get_special_finds_second_bay(self):
         from spacewar.components.defaults import (
-            build_default_loadout, ambush_special, teleportation_special,
+            build_default_loadout, phasing_special, teleportation_special,
         )
         loadout = build_default_loadout()
-        loadout.equip(ambush_special())
+        loadout.equip(phasing_special())
         loadout.equip(teleportation_special(teleport_range=7))
         tele = loadout.get_special("teleportation")
         assert tele is not None
@@ -471,24 +471,24 @@ class TestDualSpecialSlots:
     def test_third_special_replaces_first_bay(self):
         from spacewar.components.defaults import (
             build_default_loadout, teleportation_special, phasing_special,
-            ambush_special,
         )
         loadout = build_default_loadout()
-        loadout.equip(teleportation_special())
+        loadout.equip(teleportation_special(teleport_range=7))
         loadout.equip(phasing_special())
-        loadout.equip(ambush_special())
-        assert loadout.has_special("ambush")
+        loadout.equip(teleportation_special(teleport_range=12))
         assert loadout.has_special("phasing")
-        assert not loadout.has_special("teleportation")
+        tele = loadout.get_special("teleportation")
+        assert tele.get("teleport_range") == 12
 
     def test_every_special_type_drops(self):
-        # Tractor beams are standard equipment now, not specials.
+        # Tractor beams are standard equipment and ambush belongs to
+        # cloaking devices now; neither drops as a special.
         from spacewar.roguelike.loot import _random_special
         seen = set()
         for _ in range(200):
             comp = _random_special(1)
             seen.add(comp.get("ability_type"))
-        assert seen == {"phasing", "ambush", "teleportation"}
+        assert seen == {"phasing", "teleportation"}
 
     def test_everyone_has_a_tractor_beam(self):
         from spacewar.components.defaults import build_default_loadout
@@ -591,6 +591,94 @@ class TestReinforcements:
         monkeypatch.setattr(rs.random, "random", lambda: 0.0)
         rs.maybe_spawn_reinforcement(game)
         assert len(battle.ships) == 4  # 3 hostiles already roam
+
+
+class TestAmbushCloaks:
+    def _ambush_ship(self):
+        from spacewar.components.defaults import basic_stealth
+        ship = _ship()
+        ship.loadout.equip(basic_stealth(ambush=True))
+        return ship
+
+    def test_ambush_cloak_carries_bonus_and_cloak(self):
+        from spacewar.components.defaults import basic_stealth
+        comp = basic_stealth(ambush=True)
+        assert comp.get("active_cloak") is True
+        assert comp.get("ambush_bonus") == 200
+
+    def test_strike_from_cloak_triples_damage(self):
+        combat = CombatSystem(_SilentAssets(), _FakeTheme())
+        ship = self._ambush_ship()
+        ship.was_cloaked = True
+        assert combat._get_ambush_multiplier(ship) == 3.0
+
+    def test_no_bonus_without_cloaking_first(self):
+        combat = CombatSystem(_SilentAssets(), _FakeTheme())
+        ship = self._ambush_ship()
+        ship.was_cloaked = False
+        assert combat._get_ambush_multiplier(ship) == 1
+
+    def test_plain_cloak_has_no_ambush(self):
+        from spacewar.components.defaults import basic_stealth
+        combat = CombatSystem(_SilentAssets(), _FakeTheme())
+        ship = _ship()
+        ship.loadout.equip(basic_stealth(active_cloak=True))
+        ship.was_cloaked = True
+        assert combat._get_ambush_multiplier(ship) == 1
+
+    def test_upgrade_point_adds_ten_percent(self):
+        from spacewar.components.base import ComponentSlot
+        from spacewar.components.defaults import basic_stealth
+        from spacewar.roguelike.upgrades import allocate_upgrade_points
+        comp = basic_stealth(ambush=True)
+        # Spend until ambush_bonus moves (allocation is random between
+        # passive_stealth and ambush_bonus).
+        for _ in range(50):
+            allocate_upgrade_points(comp, 1)
+            if comp.get("ambush_bonus") > 200:
+                break
+        assert comp.get("ambush_bonus") in (210, 220, 230, 240, 250,
+                                            260, 270, 280, 290, 300)
+
+    def test_plain_stealth_cannot_grow_ambush(self):
+        from spacewar.components.defaults import basic_stealth
+        from spacewar.roguelike.upgrades import allocate_upgrade_points
+        comp = basic_stealth()
+        allocate_upgrade_points(comp, 20)
+        assert comp.get("ambush_bonus", 0) == 0
+
+    def test_ambush_bonus_capped(self):
+        from spacewar.components.defaults import basic_stealth
+        from spacewar.roguelike.upgrades import allocate_upgrade_points
+        comp = basic_stealth(ambush=True)
+        allocate_upgrade_points(comp, 100)
+        assert comp.get("ambush_bonus") <= 300
+
+    def test_ambush_damage_stays_integer(self):
+        combat = CombatSystem(_SilentAssets(), _FakeTheme())
+        ship = self._ambush_ship()
+        ship.loadout.get_component(
+            __import__('spacewar.components.base',
+                       fromlist=['ComponentSlot'])
+            .ComponentSlot.STEALTH).stats["ambush_bonus"] = 210
+        ship.was_cloaked = True
+        dealt = combat._apply_ambush(
+            7, combat._get_ambush_multiplier(ship))
+        assert isinstance(dealt, int)
+        assert dealt == 22  # ceil(7 * 3.1)
+
+    def test_ambush_cloaks_drop_as_stealth_gear(self):
+        from spacewar.components.base import ComponentSlot
+        from spacewar.roguelike.loot import _random_component
+        found = False
+        for _ in range(500):
+            comp = _random_component(1)
+            if comp.slot == ComponentSlot.STEALTH and \
+                    comp.get("ambush_bonus", 0) > 0:
+                assert comp.get("active_cloak") is True
+                found = True
+                break
+        assert found, "no ambush cloaking device dropped in 500 rolls"
 
 
 class TestBeamColors:

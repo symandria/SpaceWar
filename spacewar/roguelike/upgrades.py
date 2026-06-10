@@ -40,7 +40,10 @@ COMPONENT_STAT_STEPS = {
     },
     ComponentSlot.WEAPON_1: {"weapon_range": (1, 1)},
     ComponentSlot.WEAPON_2: {"weapon_range": (1, 1)},
-    ComponentSlot.STEALTH: {"passive_stealth": (1, 1)},
+    ComponentSlot.STEALTH: {
+        "passive_stealth": (1, 1),
+        "ambush_bonus": (10, 1),  # +10% strike-from-cloak damage
+    },
     ComponentSlot.POWER_SOURCE: {"power_provided": (3, 1)},
 }
 
@@ -48,7 +51,12 @@ STAT_CAPS = {
     "acceleration": 6,
     "turning_degrees": 360,
     "active_dr": 50,
+    "ambush_bonus": 300,
 }
+
+# Stats that can only be raised on components that already have them:
+# plain stealth plating can't grow an ambush system from nothing.
+GATED_STATS = ("ambush_bonus",)
 
 
 def allocate_upgrade_points(component, points):
@@ -62,6 +70,8 @@ def allocate_upgrade_points(component, points):
             if cost <= remaining and (
                 stat not in STAT_CAPS
                 or component.stats.get(stat, 0) + step <= STAT_CAPS[stat])
+            and (stat not in GATED_STATS
+                 or component.stats.get(stat, 0) > 0)
         ]
         if not choices:
             break

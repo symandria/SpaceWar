@@ -3,7 +3,7 @@ from spacewar.components.ship_loadout import ShipLoadout
 from spacewar.components.defaults import (
     build_default_loadout, basic_engine, basic_shields, basic_hull,
     basic_lazers, basic_torpedoes, basic_stealth, basic_sensors,
-    basic_power_source, no_special, teleportation_special, ambush_special,
+    basic_power_source, no_special, teleportation_special,
     phasing_special,
 )
 from spacewar.components.registry import ComponentRegistry

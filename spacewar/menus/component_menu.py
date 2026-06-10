@@ -47,6 +47,7 @@ STAT_DISPLAY = {
     "weapon_range": "Range",
     "passive_stealth": "Stealth",
     "active_cloak": "Cloaking",
+    "ambush_bonus": "Ambush Dmg +%",
     "power_provided": "Power Output",
     "ability_type": "Ability",
     "teleport_range": "Teleport Range",

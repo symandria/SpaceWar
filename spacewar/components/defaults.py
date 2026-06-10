@@ -46,12 +46,20 @@ def basic_torpedoes():
     )
 
 
-def basic_stealth(active_cloak=False):
+def basic_stealth(active_cloak=False, ambush=False):
+    # Ambush is a property of (some) cloaking devices, not a separate
+    # special: striking from cloak deals +ambush_bonus% damage, and
+    # upgrades can raise it by +10% per point.
+    if ambush:
+        active_cloak = True
     power = 3 if active_cloak else 1
-    return Component(
-        ComponentSlot.STEALTH, "Basic Stealth", power,
-        passive_stealth=0, active_cloak=active_cloak,
-    )
+    if ambush:
+        power = 4
+    stats = {"passive_stealth": 0, "active_cloak": active_cloak}
+    if ambush:
+        stats["ambush_bonus"] = 200  # 3x strike out of cloak
+    name = "Ambush Cloaking Device" if ambush else "Basic Stealth"
+    return Component(ComponentSlot.STEALTH, name, power, **stats)
 
 
 def basic_power_source():
@@ -73,14 +81,6 @@ def teleportation_special(teleport_range=10, recharge=3):
         ComponentSlot.SPECIAL, "Teleportation", 3,
         ability_type="teleportation",
         teleport_range=teleport_range, recharge=recharge,
-    )
-
-
-def ambush_special(damage_multiplier=3):
-    return Component(
-        ComponentSlot.SPECIAL, "Ambush Systems", 2,
-        ability_type="ambush",
-        damage_multiplier=damage_multiplier,
     )
 
 
@@ -132,7 +132,7 @@ def _apply_race_specials(loadout, specials):
         elif special == "acceleration" or special == "acceleration_always":
             loadout.equip(basic_engine(acceleration=3))
         elif special == "ambush":
-            loadout.equip(ambush_special())
+            loadout.equip(basic_stealth(ambush=True))
         elif special == "regeneration" or special == "regeneration_always":
             _update_shield_regen(loadout, 10)
         elif special.startswith("regen_"):

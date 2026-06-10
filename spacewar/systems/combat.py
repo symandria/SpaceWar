@@ -31,11 +31,24 @@ class CombatSystem:
             return None
 
     def _get_ambush_multiplier(self, who):
-        if who.loadout.has_special("ambush") and who.was_cloaked:
-            if not who.cloaked:
-                who.was_cloaked = False
-            return 3
-        return 1
+        """Ambush lives on the cloaking device: striking from cloak
+        deals +ambush_bonus% damage (200 base = 3x, +10%/upgrade)."""
+        if not who.was_cloaked:
+            return 1
+        from spacewar.components.base import ComponentSlot
+        stealth = who.loadout.get_component(ComponentSlot.STEALTH)
+        bonus = stealth.get("ambush_bonus", 0) if stealth else 0
+        if bonus <= 0:
+            return 1
+        if not who.cloaked:
+            who.was_cloaked = False
+        return 1 + bonus / 100.0
+
+    @staticmethod
+    def _apply_ambush(damage, multiplier):
+        if multiplier == 1:
+            return damage
+        return int(math.ceil(damage * multiplier))
 
     def _get_phaser_color(self, who, step=0):
         # Priority: the equipped weapon's own color, then the ship's
@@ -171,15 +184,16 @@ class CombatSystem:
         if cpoint is not None:
             cpoint_pos, what = cpoint[1], cpoint[2]
             if isinstance(what, Ship):
-                damage_multiplier = self._get_ambush_multiplier(who)
+                dealt = self._apply_ambush(
+                    damage_per_hit, self._get_ambush_multiplier(who))
                 was_dead = what.is_dead()
-                what.apply_damage(damage_per_hit * damage_multiplier)
+                what.apply_damage(dealt)
                 if who == player and what.is_dead() and not was_dead:
                     self._credit_kill(match_stats, player, what)
                 if team_game and who.type == what.type:
-                    match_stats[who]["teamdamage"] -= damage_per_hit * damage_multiplier
+                    match_stats[who]["teamdamage"] -= dealt
                 else:
-                    match_stats[who]["damage"] += damage_per_hit * damage_multiplier
+                    match_stats[who]["damage"] += dealt
                 if who == player and not phaser_hit_this_turn:
                     match_stats[player]["phasers hit"] += 1
                     phaser_hit_this_turn = True
@@ -209,7 +223,7 @@ class CombatSystem:
             color = color[0]
         stats = WEAPON_STATS[WeaponType.DISRUPTORS]
         damage = stats["damage_per_hit"](who.weapon_power)
-        damage *= self._get_ambush_multiplier(who)
+        damage = self._apply_ambush(damage, self._get_ambush_multiplier(who))
 
         where = HexGrid.hex_to_coords(*target_hex)
         where = where[0] + 4, where[1] + 4
@@ -235,7 +249,7 @@ class CombatSystem:
         self._asset_loader.play_sound("phaser")
         color = self._get_phaser_color(who)
         damage = WEAPON_STATS[WeaponType.POINT_LAZERS]["damage_per_hit"](who.weapon_power)
-        damage *= self._get_ambush_multiplier(who)
+        damage = self._apply_ambush(damage, self._get_ambush_multiplier(who))
         origin = int(who.pos[0]) + 4, int(who.pos[1]) + 4
 
         closest = None
@@ -271,7 +285,7 @@ class CombatSystem:
     def fire_shockwave(self, who, ships, match_stats, team_game, player):
         self._asset_loader.play_sound("hit")
         damage = WEAPON_STATS[WeaponType.SHOCKWAVE]["damage_per_hit"](who.weapon_power)
-        damage *= self._get_ambush_multiplier(who)
+        damage = self._apply_ambush(damage, self._get_ambush_multiplier(who))
         radius = WEAPON_STATS[WeaponType.SHOCKWAVE]["aoe_radius"]
         ship_hex = HexGrid.coords_to_hex(who.pos)
 
@@ -295,7 +309,7 @@ class CombatSystem:
         color = self._get_torpedo_color(who)
         stats = WEAPON_STATS[weapon_type]
         damage = stats["damage_per_hit"](who.weapon_power)
-        damage *= self._get_ambush_multiplier(who)
+        damage = self._apply_ambush(damage, self._get_ambush_multiplier(who))
         speed = stats.get("speed", 3.0)
 
         where = HexGrid.hex_to_coords(*target_hex)
@@ -327,7 +341,7 @@ class CombatSystem:
         pos = HexGrid.hex_to_coords(*target_hex)
         pos = pos[0] + 4, pos[1] + 4
         damage = WEAPON_STATS[WeaponType.MINES]["damage_per_hit"](who.weapon_power)
-        damage *= self._get_ambush_multiplier(who)
+        damage = self._apply_ambush(damage, self._get_ambush_multiplier(who))
         mine = Mine(pos, who, damage)
         mines.append(mine)
 
