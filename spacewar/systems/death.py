@@ -34,7 +34,8 @@ class DeathSystem:
         for ship in dying:
             hex_pos = HexGrid.coords_to_hex(ship.pos)
             if hex_pos:
-                wreck = Wreck(hex_pos, ship.type, ship.rank)
+                wreck = Wreck(hex_pos, ship.type, ship.rank,
+                              cargo=getattr(ship, 'cargo', None))
                 wreck_list.append(wreck)
 
     def animate_explosion(self, dying, frame):

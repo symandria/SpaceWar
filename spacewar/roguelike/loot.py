@@ -69,12 +69,30 @@ def generate_salvage_loot(tier):
     return loot
 
 
+def _random_special(tier):
+    """Every special ability type drops somewhere in the world.
+    (Tractor beams are standard equipment, not specials.)"""
+    from spacewar.components.defaults import (
+        phasing_special, ambush_special, teleportation_special,
+    )
+    comp = random.choice([
+        phasing_special, ambush_special, teleportation_special,
+    ])()
+    comp.name = f"Salvaged {comp.name} Mk{tier}"
+    comp.power_cost = power_cost_for_tier(comp.power_cost, tier)
+    return comp
+
+
 def _random_component(tier):
     slot = random.choice([
         ComponentSlot.ENGINE, ComponentSlot.SENSORS, ComponentSlot.SHIELDS,
         ComponentSlot.HULL, ComponentSlot.WEAPON_1, ComponentSlot.WEAPON_2,
         ComponentSlot.STEALTH, ComponentSlot.POWER_SOURCE,
+        ComponentSlot.SPECIAL,
     ])
+
+    if slot == ComponentSlot.SPECIAL:
+        return _random_special(tier)
 
     if slot == ComponentSlot.ENGINE:
         comp, base_name = basic_engine(), "Engine"
@@ -102,6 +120,32 @@ def _random_component(tier):
     comp.name = f"Salvaged {base_name} Mk{tier}"
     comp.power_cost = power_cost_for_tier(comp.power_cost, tier)
     allocate_upgrade_points(comp, base_points_for_tier(tier))
+    return comp
+
+
+def generate_anomaly_component(tier, quality=1):
+    """Anomaly loot: gear with special properties. Quality (from the
+    host nebula's danger) adds bonus points or upgrades the roll."""
+    from spacewar.components.defaults import (
+        phasing_special, ambush_special, teleportation_special,
+    )
+    roll = random.random()
+    if roll < 0.40:
+        comp = random.choice([
+            phasing_special, ambush_special, teleportation_special,
+        ])()
+        comp.name = f"Anomalous {comp.name}"
+        return comp
+    if roll < 0.60:
+        comp = basic_stealth(active_cloak=random.random() < 0.25 + quality * 0.05)
+        comp.stats["passive_stealth"] = 3
+        comp.name = "Anomalous Stealth Plating"
+        comp.power_cost = power_cost_for_tier(comp.power_cost, tier)
+        return comp
+    comp = _random_component(tier)
+    if comp:
+        allocate_upgrade_points(comp, quality * 2)
+        comp.name = comp.name.replace("Salvaged", "Anomalous")
     return comp
 
 

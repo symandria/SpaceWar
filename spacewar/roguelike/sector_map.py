@@ -1,14 +1,16 @@
 import random
-from spacewar.roguelike.encounters import NodeType
+from spacewar.roguelike.encounters import NodeType, pick_environment
 
 
 class MapNode:
-    def __init__(self, node_id, node_type, tier, row, col):
+    def __init__(self, node_id, node_type, tier, row, col, environment=None):
         self.node_id = node_id
         self.node_type = node_type
         self.tier = tier
         self.row = row
         self.col = col
+        # Terrain shown to the player; combat nodes always have one.
+        self.environment = environment
         self.connections = []
         self.completed = False
         self.visible = False
@@ -46,7 +48,8 @@ class SectorMap:
             if row == rows_per_tier - 1:
                 positions = [1]
             else:
-                num_nodes = random.randint(2, cols)
+                # Usually two choices per row.
+                num_nodes = random.choice([2, 2, 2, 3])
                 positions = sorted(random.sample(range(cols), num_nodes))
             row_nodes = []
 
@@ -56,7 +59,10 @@ class SectorMap:
                 else:
                     ntype = random.choice(type_pool)
 
-                node = MapNode(next_id, ntype, tier, row, col_idx)
+                environment = None
+                if ntype in (NodeType.BATTLE, NodeType.ELITE, NodeType.BOSS):
+                    environment = pick_environment()
+                node = MapNode(next_id, ntype, tier, row, col_idx, environment)
                 self.nodes[next_id] = node
                 row_nodes.append(node)
                 next_id += 1
@@ -76,14 +82,13 @@ class SectorMap:
             prev_row_nodes = row_nodes
 
     def _build_type_pool(self, tier):
-        pool = [NodeType.BATTLE, NodeType.BATTLE, NodeType.BATTLE]
+        # Enemies are present almost everywhere; nodes differ mainly by
+        # terrain. Shops appear inside battles, salvage via tractor.
+        pool = [NodeType.BATTLE] * 6
         pool.append(NodeType.ELITE)
-        pool.append(NodeType.SHOP)
-        pool.append(NodeType.SALVAGE)
         pool.append(NodeType.EVENT)
         if tier >= 2:
             pool.append(NodeType.ELITE)
-            pool.append(NodeType.BATTLE)
         pool.append(NodeType.REST)
         return pool
 

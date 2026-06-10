@@ -12,7 +12,7 @@ def basic_engine(acceleration=2):
 def basic_sensors():
     return Component(
         ComponentSlot.SENSORS, "Basic Sensors", 2,
-        vision_forward=10, vision_backward=5,
+        vision_forward=14, vision_backward=7,
         cloak_detection=0,
     )
 
@@ -20,7 +20,7 @@ def basic_sensors():
 def basic_shields(active_dr=0):
     return Component(
         ComponentSlot.SHIELDS, "Basic Shields", 4,
-        strength=100, passive_regen=5,
+        strength=100, passive_regen=2,
         active_regen_mult=1.0, active_dr=active_dr,
     )
 
@@ -92,10 +92,12 @@ def phasing_special(duration=3, recharge=3):
     )
 
 
-def tractor_beam_special():
+def basic_tractor_beam():
+    # Standard shipboard equipment, not a special: every hull mounts
+    # one for looting asteroids, wrecks and anomalies at range 1.
     return Component(
-        ComponentSlot.SPECIAL, "Tractor Beam", 2,
-        ability_type="tractor_beam",
+        ComponentSlot.TRACTOR, "Tractor Beam", 0,
+        tractor_range=1,
     )
 
 
@@ -110,6 +112,7 @@ def build_default_loadout(race_specials=None):
     loadout.equip(basic_torpedoes())
     loadout.equip(basic_stealth())
     loadout.equip(basic_power_source())
+    loadout.equip(basic_tractor_beam())
     loadout.equip(no_special())
 
     if race_specials:

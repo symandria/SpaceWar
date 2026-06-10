@@ -44,6 +44,13 @@ class Infobox:
             if w2:
                 wn = w2.get("weapon_type", "?").replace("_", " ").title()
                 self.surfaces.append(self.font.render(f"W2: {wn}", True, dim))
+            if t.passive_stealth > 0:
+                self.surfaces.append(self.font.render(
+                    f"Stealth: {t.passive_stealth}", True, dim))
+            if t.active_cloak:
+                state = "ON" if t.cloaked else "ready"
+                self.surfaces.append(self.font.render(
+                    f"Cloak: {state}", True, dim))
         else:
             shield_pct = int(t.shields / t.max_shields * 100) if t.max_shields > 0 else 0
             hull_indicator = "OK" if t.hull > t.max_hull * 0.5 else (
@@ -60,9 +67,7 @@ class Infobox:
             if t.cloaked:
                 self.surfaces.append(
                     self.font.render("CLOAKED", True, (200, 100, 255)))
-            special = t.loadout.get_component(
-                __import__('spacewar.components.base', fromlist=['ComponentSlot']).ComponentSlot.SPECIAL)
-            if special and special.get("ability_type"):
+            for special in t.loadout.get_specials():
                 self.surfaces.append(
                     self.font.render(f"[{special.name}]", True, dim))
 

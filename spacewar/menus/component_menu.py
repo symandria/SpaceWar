@@ -10,6 +10,8 @@ SLOT_ORDER = [
     ComponentSlot.WEAPON_1,
     ComponentSlot.WEAPON_2,
     ComponentSlot.SPECIAL,
+    ComponentSlot.SPECIAL_2,
+    ComponentSlot.TRACTOR,
     ComponentSlot.STEALTH,
     ComponentSlot.POWER_SOURCE,
 ]
@@ -21,7 +23,9 @@ SLOT_LABELS = {
     ComponentSlot.HULL: "Hull",
     ComponentSlot.WEAPON_1: "Weapon 1",
     ComponentSlot.WEAPON_2: "Weapon 2",
-    ComponentSlot.SPECIAL: "Special",
+    ComponentSlot.SPECIAL: "Special 1",
+    ComponentSlot.SPECIAL_2: "Special 2",
+    ComponentSlot.TRACTOR: "Tractor Beam",
     ComponentSlot.STEALTH: "Stealth",
     ComponentSlot.POWER_SOURCE: "Power",
 }

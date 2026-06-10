@@ -20,7 +20,8 @@ class TestComponent:
 
     def test_all_slots_exist(self):
         expected = {"engine", "sensors", "shields", "hull", "weapon_1",
-                    "weapon_2", "special", "power_source", "stealth"}
+                    "weapon_2", "special", "special_2", "power_source",
+                    "stealth", "tractor"}
         actual = {s.value for s in ComponentSlot}
         assert actual == expected
 
@@ -39,6 +40,8 @@ class TestShipLoadout:
 
     def test_all_slots_filled(self, default_loadout):
         for slot in ComponentSlot:
+            if slot == ComponentSlot.SPECIAL_2:
+                continue  # second special bay starts empty
             assert default_loadout.get_component(slot) is not None, \
                 f"Slot {slot.value} is empty"
 

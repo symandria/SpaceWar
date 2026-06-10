@@ -34,17 +34,33 @@ class TestRegenerationSystem:
         regen = RegenerationSystem()
         default_ship.shields = 90
         regen.setup_regen_flag(default_ship)
-        assert default_ship.regen == 5
+        assert default_ship.regen == 2
         regen.apply_end_of_turn([default_ship])
-        assert default_ship.shields == 95
+        assert default_ship.shields == 92
 
 
 class TestCloakingSystem:
-    def test_cloak_when_no_action(self, cloaking_ship):
+    def test_cloak_action_toggles_on(self, cloaking_ship):
         cloak = CloakingSystem()
+        cloaking_ship.action = "cloak"
+        cloak.apply([cloaking_ship], _make_sprites(cloaking_ship))
+        assert cloaking_ship.cloaked is True
+
+    def test_cloak_persists_with_no_action(self, cloaking_ship):
+        cloak = CloakingSystem()
+        cloaking_ship.action = "cloak"
+        cloak.apply([cloaking_ship], _make_sprites(cloaking_ship))
         cloaking_ship.action = None
         cloak.apply([cloaking_ship], _make_sprites(cloaking_ship))
         assert cloaking_ship.cloaked is True
+
+    def test_cloak_action_toggles_off(self, cloaking_ship):
+        cloak = CloakingSystem()
+        cloaking_ship.action = "cloak"
+        cloak.apply([cloaking_ship], _make_sprites(cloaking_ship))
+        cloaking_ship.action = "cloak"
+        cloak.apply([cloaking_ship], _make_sprites(cloaking_ship))
+        assert cloaking_ship.cloaked is False
 
     def test_uncloak_when_attacking(self, cloaking_ship):
         cloak = CloakingSystem()

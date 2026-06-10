@@ -45,6 +45,14 @@ class Ship:
         self.phasing_active = False
         self.phasing_remaining = 0
         self.phasing_cooldown = 0
+        self.sensor_static = False  # inside a static cloud
+        self.comet_drag = False  # comet dust fouling the engines
+        self.slipstream_boost = False  # riding a slipstream current
+        # AI ships patrol peacefully until they detect a target or get
+        # shot; roguelike battles spawn them un-aggroed.
+        self.aggro = True
+        self.faction = None
+        self.faction_coop = True
         self.image = None
 
     @property
@@ -57,7 +65,12 @@ class Ship:
 
     @property
     def engine(self):
-        return self.loadout.get_stat(ComponentSlot.ENGINE, "max_speed", 5)
+        speed = self.loadout.get_stat(ComponentSlot.ENGINE, "max_speed", 5)
+        if self.comet_drag:
+            speed = max(1, speed - 2)
+        if self.slipstream_boost:
+            speed += 3
+        return speed
 
     @property
     def acceleration(self):
@@ -97,11 +110,11 @@ class Ship:
 
     @property
     def vision_forward(self):
-        return self.loadout.get_stat(ComponentSlot.SENSORS, "vision_forward", 10)
+        return self.loadout.get_stat(ComponentSlot.SENSORS, "vision_forward", 14)
 
     @property
     def vision_backward(self):
-        return self.loadout.get_stat(ComponentSlot.SENSORS, "vision_backward", 5)
+        return self.loadout.get_stat(ComponentSlot.SENSORS, "vision_backward", 7)
 
     @property
     def cloak_detection(self):

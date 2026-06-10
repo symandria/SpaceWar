@@ -3,11 +3,13 @@ from spacewar.rendering.hex_grid import HexGrid
 
 
 class Wreck:
-    def __init__(self, hex_pos, ship_type, ship_rank):
+    def __init__(self, hex_pos, ship_type, ship_rank, cargo=None):
         self.hex_pos = hex_pos
         self.pos = HexGrid.hex_to_coords(*hex_pos)
         self.ship_type = ship_type
         self.ship_rank = ship_rank
+        # Mining ships spill their hold into the wreck.
+        self.cargo = cargo
         self.salvaged = False
 
     def render(self, screen):

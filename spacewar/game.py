@@ -3,9 +3,8 @@ import random
 import pygame
 import pygame.gfxdraw
 
-from spacewar.config.constants import (
-    RANKS, STATS, SCREEN_SIZE, GRID_ROWS, GRID_COLS_ODD, GRID_COLS_EVEN, max_col,
-)
+from spacewar.config import constants
+from spacewar.config.constants import RANKS, STATS, max_col
 from spacewar.config.settings import GameSettings
 from spacewar.data.asset_loader import AssetLoader
 from spacewar.data.localization import TextManager
@@ -54,7 +53,17 @@ class BattleState:
         self.nebulae = []
         self.nebulae_by_hex = {}
         self.wrecks = []
+        self.anomalies = []
         self.match_stats = {}
+        self.harvested = {"scrap": 0, "materials": {}, "components": []}
+        self.tier = 1
+        self.turn_count = 0
+        self.exit_prompt_turn = None
+        self.pending_enemies = []
+        self.next_spawn_turn = None
+        # Cumulative combat spawns this zone; capped at 6 to prevent
+        # farming. Mining ships and shops don't count.
+        self.total_combat_spawns = 0
         self.team_game = False
         self.player = None
         self.home_player = None
@@ -90,7 +99,7 @@ class Game:
         self.hex_grid = HexGrid(self.settings.foreground, self.settings.background)
         self.renderer = GameRenderer(self.settings, self.hex_grid)
 
-        self.world_surface = pygame.Surface(SCREEN_SIZE)
+        self.world_surface = pygame.Surface(constants.SCREEN_SIZE)
         self.screen = pygame.Surface(VIEWPORT_SIZE)
         self.background = self.hex_grid.build_background()
         self.viewport = Viewport()
@@ -169,8 +178,18 @@ class Game:
             self.display.get_width(), *buttons,
         )
 
-    def init_battle(self):
+    def init_battle(self, map_size="2x2"):
+        self.set_board_size(map_size)
         self.battle = BattleState()
+
+    def set_board_size(self, map_size):
+        """Resize the hex board (e.g. "1x3" = 1 base-map tall, 3 wide)
+        and rebuild the surfaces that depend on it."""
+        h, w = constants.MAP_SIZES.get(map_size, (2, 2))
+        constants.set_map_size(h, w)
+        self.world_surface = pygame.Surface(constants.SCREEN_SIZE)
+        self.background = self.hex_grid.build_background()
+        self.viewport = Viewport()
 
     def start_campaign_battle(self):
         self.init_battle()
@@ -233,7 +252,7 @@ class Game:
                     valid_ships = ship_names
 
                 e_loadout = build_race_loadout(slot_race)
-                positions = ((GRID_ROWS, GRID_COLS_EVEN), (1, GRID_COLS_ODD), (GRID_ROWS, 1))
+                positions = ((constants.GRID_ROWS, constants.GRID_COLS_EVEN), (1, constants.GRID_COLS_ODD), (constants.GRID_ROWS, 1))
                 angle = 180 if i == 1 else 0
                 enemy = Ship(
                     slot_race, HexGrid.hex_to_coords(*positions[i]), angle,
@@ -247,7 +266,7 @@ class Game:
                 b.match_stats[enemy] = ScoringSystem.init_ai_stats()
             elif slot == "sentry":
                 sentry_loadout = build_race_loadout("sentry")
-                positions = ((GRID_ROWS, GRID_COLS_EVEN), (1, GRID_COLS_ODD), (GRID_ROWS, 1))
+                positions = ((constants.GRID_ROWS, constants.GRID_COLS_EVEN), (1, constants.GRID_COLS_ODD), (constants.GRID_ROWS, 1))
                 enemy = Ship(
                     "sentry", HexGrid.hex_to_coords(*positions[i]), 0,
                     RANKS[0], "", self.text_manager.load("sentry"),
@@ -281,7 +300,7 @@ class Game:
         asteroid_count = random.randint(3, 8)
         for _ in range(asteroid_count):
             for attempt in range(20):
-                row = random.randint(3, GRID_ROWS - 2)
+                row = random.randint(3, constants.GRID_ROWS - 2)
                 col = random.randint(2, max_col(row) - 1)
                 if (row, col) not in occupied:
                     battle.asteroids.append(Asteroid((row, col)))
@@ -290,12 +309,12 @@ class Game:
 
         nebula_types = [NebulaTile.RED, NebulaTile.GREEN, NebulaTile.PURPLE]
         for ntype in nebula_types:
-            center_row = random.randint(5, GRID_ROWS - 4)
+            center_row = random.randint(5, constants.GRID_ROWS - 4)
             center_col = random.randint(3, max_col(center_row) - 2)
             for dr in range(-1, 2):
                 for dc in range(-1, 2):
                     r, c = center_row + dr, center_col + dc
-                    if r < 1 or r > GRID_ROWS or c < 1 or c > max_col(r):
+                    if r < 1 or r > constants.GRID_ROWS or c < 1 or c > max_col(r):
                         continue
                     if (r, c) in occupied:
                         continue
@@ -304,22 +323,23 @@ class Game:
                     battle.nebulae_by_hex[(r, c)] = neb
                     occupied.add((r, c))
 
-    def _render_fog(self, player, view_rect):
-        clear, shaded, fog = self.visibility_system.get_fog_data(player)
+    def _render_fog(self, fog_data, view_rect):
+        clear, shaded, fog = fog_data
         fog_surface = pygame.Surface(VIEWPORT_SIZE, pygame.SRCALPHA)
         for hx in shaded:
             wx, wy = HexGrid.hex_to_coords(*hx)
             sx = wx - view_rect.left
             sy = wy - view_rect.top
             if -10 < sx < VIEWPORT_SIZE[0] + 10 and -10 < sy < VIEWPORT_SIZE[1] + 10:
-                fog_surface.fill((0, 0, 0, 100),
+                fog_surface.fill((0, 0, 0, 110),
                                  (sx - 1, sy - 1, 11, 11))
         for hx in fog:
             wx, wy = HexGrid.hex_to_coords(*hx)
             sx = wx - view_rect.left
             sy = wy - view_rect.top
             if -10 < sx < VIEWPORT_SIZE[0] + 10 and -10 < sy < VIEWPORT_SIZE[1] + 10:
-                fog_surface.fill((0, 0, 0, 200),
+                # Fully opaque: nothing outside sensor range leaks through.
+                fog_surface.fill((0, 0, 0, 255),
                                  (sx - 1, sy - 1, 11, 11))
         self.screen.blit(fog_surface, (0, 0))
 
@@ -332,13 +352,10 @@ class Game:
 
         ws = self.world_surface
         move_time = self.turn_resolver.move_time
-        if move_time == 0 and not draw_phasers:
-            ws.fill(self.settings.background)
-        else:
-            ws.blit(self.background, (0, 0))
+        ws.blit(self.background, (0, 0))
 
         if show_invalid_destinations and b.player:
-            for row in range(1, GRID_ROWS + 1):
+            for row in range(1, constants.GRID_ROWS + 1):
                 for column in range(1, max_col(row) + 1):
                     if not b.player.get_valid_destination(
                             row, column, bool(b.player.action)):
@@ -357,6 +374,9 @@ class Game:
 
         for wreck in b.wrecks:
             wreck.render(ws)
+
+        for anomaly in b.anomalies:
+            anomaly.render(ws)
 
         for mine in b.mines:
             mine.render(ws)
@@ -401,8 +421,10 @@ class Game:
         view_rect = self.viewport.get_view_rect()
         self.screen.blit(ws, (0, 0), view_rect)
 
+        fog_data = None
         if b.player:
-            self._render_fog(b.player, view_rect)
+            fog_data = self.visibility_system.get_fog_data(b.player)
+            self._render_fog(fog_data, view_rect)
 
         pygame.transform.scale(self.screen, self.settings.window_size, self.display)
 
@@ -410,13 +432,14 @@ class Game:
         self.battle_hud.render(self.display, b.player, m)
 
         if b.player:
+            visible_hexes = fog_data[0] | fog_data[1]
             mm_scale = max(2, m)
             mm_w = self.minimap.width * mm_scale
             mm_h = self.minimap.height * mm_scale
             mm_x = self.settings.window_size[0] - mm_w - 4
-            mm_y = 4
+            mm_y = self.settings.window_size[1] - mm_h - 4
             self.minimap.render(self.display, b, self.viewport.get_view_rect(),
-                                mm_x, mm_y)
+                                mm_x, mm_y, visible_hexes)
             scaled = pygame.transform.scale(self.minimap.surface, (mm_w, mm_h))
             self.display.blit(scaled, (mm_x, mm_y))
 

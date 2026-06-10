@@ -26,9 +26,12 @@ class TestWeaponStats:
 
     def test_disruptors_damage_1_4x(self):
         import math
+        # 2 bolts per volley x 3 volleys = 6 hits
         per_hit = WEAPON_STATS[WeaponType.DISRUPTORS]["damage_per_hit"](10)
-        assert per_hit == math.ceil(10 * 5.6 / 3)  # 19
-        assert get_weapon_damage(WeaponType.DISRUPTORS, 10) == 57
+        assert per_hit == math.ceil(10 * 5.6 / 6)  # 10
+        assert get_weapon_damage(WeaponType.DISRUPTORS, 10) == 60
+        assert WEAPON_STATS[WeaponType.DISRUPTORS]["hits"] == 6
+        assert WEAPON_STATS[WeaponType.DISRUPTORS]["projectile"] is True
 
     def test_point_lazers_damage_0_4x(self):
         assert get_weapon_damage(WeaponType.POINT_LAZERS, 10) == 16
@@ -43,17 +46,17 @@ class TestWeaponStats:
     def test_he_torpedo_damage_0_7x(self):
         assert get_weapon_damage(WeaponType.HE_TORPEDO, 10) == 28
 
-    def test_mines_damage_2x(self):
-        assert get_weapon_damage(WeaponType.MINES, 10) == 80
+    def test_mines_damage_1_5x(self):
+        assert get_weapon_damage(WeaponType.MINES, 10) == 60
 
     def test_weapon_ranges(self):
         assert get_weapon_range(WeaponType.LAZERS) == 15
         assert get_weapon_range(WeaponType.TORPEDOES) == 15
-        assert get_weapon_range(WeaponType.DISRUPTORS) == 6
+        assert get_weapon_range(WeaponType.DISRUPTORS) == 8
         assert get_weapon_range(WeaponType.POINT_LAZERS) == 15
         assert get_weapon_range(WeaponType.SHOCKWAVE) == 2
         assert get_weapon_range(WeaponType.HE_TORPEDO) == 12
-        assert get_weapon_range(WeaponType.MINES) == 0
+        assert get_weapon_range(WeaponType.MINES) == 1  # drop range
 
     def test_display_names(self):
         for wtype in WeaponType:
@@ -70,22 +73,22 @@ class TestWeaponStats:
 
 class TestWeaponBalance:
     def test_damage_ordering(self):
-        # mines > lazers > disruptors > torpedoes > shockwave/HE > point
+        # lazers > mines >= disruptors > torpedoes > shockwave/HE > point
         wp = 10
         dmg = {wt: get_weapon_damage(wt, wp) for wt in WeaponType}
-        assert dmg[WeaponType.MINES] > dmg[WeaponType.LAZERS]
-        assert dmg[WeaponType.LAZERS] > dmg[WeaponType.DISRUPTORS]
+        assert dmg[WeaponType.LAZERS] > dmg[WeaponType.MINES]
+        assert dmg[WeaponType.MINES] >= dmg[WeaponType.DISRUPTORS]
         assert dmg[WeaponType.DISRUPTORS] > dmg[WeaponType.TORPEDOES]
         assert dmg[WeaponType.TORPEDOES] > dmg[WeaponType.SHOCKWAVE]
         assert dmg[WeaponType.SHOCKWAVE] == dmg[WeaponType.HE_TORPEDO]
         assert dmg[WeaponType.HE_TORPEDO] > dmg[WeaponType.POINT_LAZERS]
 
     def test_mines_highest_single_hit(self):
+        # Among single-strike weapons, mines hit hardest.
         wp = 10
         mine_dmg = get_weapon_damage(WeaponType.MINES, wp)
-        for wtype in WeaponType:
-            if wtype == WeaponType.MINES:
-                continue
+        for wtype in (WeaponType.TORPEDOES, WeaponType.POINT_LAZERS,
+                      WeaponType.SHOCKWAVE, WeaponType.HE_TORPEDO):
             other = get_weapon_damage(wtype, wp)
             assert mine_dmg >= other, \
                 f"Mines ({mine_dmg}) should be >= {wtype.value} ({other})"

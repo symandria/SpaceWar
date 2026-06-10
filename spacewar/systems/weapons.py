@@ -36,11 +36,14 @@ WEAPON_STATS = {
     },
     WeaponType.DISRUPTORS: {
         "display_name": "Disruptors",
-        "max_range": 6,
-        "hits": 3,
-        "damage_per_hit": lambda wp: max(1, math.ceil(wp * 5.6 / 3)),
-        "projectile": False,
-        "fire_type": "hitscan_burst",
+        "max_range": 8,
+        "hits": 6,  # 2 bolts per volley x 3 volleys
+        "damage_per_hit": lambda wp: max(1, math.ceil(wp * 5.6 / 6)),
+        "projectile": True,
+        "speed": 3.0,
+        "fire_type": "projectile_burst",
+        "volleys": 3,
+        "bolts_per_volley": 2,
     },
     WeaponType.POINT_LAZERS: {
         "display_name": "Point Lazers",
@@ -73,9 +76,9 @@ WEAPON_STATS = {
     },
     WeaponType.MINES: {
         "display_name": "Mines",
-        "max_range": 0,
+        "max_range": 1,  # drop range: own hex or adjacent
         "hits": 1,
-        "damage_per_hit": lambda wp: wp * 8,  # 2x baseline
+        "damage_per_hit": lambda wp: wp * 6,  # 1.5x baseline
         "projectile": False,
         "fire_type": "mine",
         "range_fixed": True,

@@ -4,7 +4,8 @@ import glob
 import pygame
 import pygame.gfxdraw
 
-from spacewar.config.constants import GRID_ROWS, max_col
+from spacewar.config import constants
+from spacewar.config.constants import max_col
 
 
 class GameRenderer:
@@ -33,7 +34,7 @@ class GameRenderer:
             screen.fill(settings.background)
 
         if show_invalid_destinations and b.player:
-            for row in range(1, GRID_ROWS + 1):
+            for row in range(1, constants.GRID_ROWS + 1):
                 for column in range(1, max_col(row) + 1):
                     if not b.player.get_valid_destination(
                             row, column, bool(b.player.action)):

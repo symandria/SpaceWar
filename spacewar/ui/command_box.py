@@ -83,6 +83,11 @@ class CommandBox:
             return f"Regen Shields (+{amt})"
         if action == "power_shields":
             return f"Power to Shields (DR {player.active_dr}%)"
+        if action == "cloak":
+            return "Decloak" if player.cloaked else "Engage Cloak"
+        if action == "tractor_beam":
+            target_str = repr(player.target) if player.target else "..."
+            return f"Tractor Beam -> {target_str}"
         if action == "self-destruct":
             return "Self-Destruct!"
         return f"Action: {action}"
@@ -92,7 +97,8 @@ class CommandBox:
         self.screen.blit(self.movement_info, (self.rect.left + 2, self.rect.top + 2))
         self.screen.blit(self.move_button, self.move_button_rect)
         self.screen.blit(self.action_info, self.action_info_rect)
-        if player_action in ("phaser", "torpedo", "weapon_1", "weapon_2"):
+        if player_action in ("phaser", "torpedo", "weapon_1", "weapon_2",
+                             "tractor_beam"):
             self.screen.blit(self.act_button, self.act_button_rect)
         self.screen.blit(self.okay_button, self.okay_button_rect)
         self.screen.blit(self.cancel_button, self.cancel_button_rect)

@@ -15,7 +15,7 @@ class TeleportationSystem:
 
             teleport_range = 999
             if has_teleport:
-                special = ship.loadout.get_component(ComponentSlot.SPECIAL)
+                special = ship.loadout.get_special("teleportation")
                 if special:
                     teleport_range = special.get("teleport_range", 999)
 
@@ -35,7 +35,7 @@ class TeleportationSystem:
                 ship.speed = 0
                 if ship.active_cloak:
                     ship.cloak(False, sprite_lookup)
-                special = ship.loadout.get_component(ComponentSlot.SPECIAL)
+                special = ship.loadout.get_special("teleportation")
                 recharge = special.get("recharge", 3) if special else 3
                 ship.teleport_cooldown = recharge
             else:

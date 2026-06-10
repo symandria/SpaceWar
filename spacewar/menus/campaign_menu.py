@@ -148,8 +148,7 @@ class ShipOverview(MenuAction):
                 parts.append(f"DR: {dr}%")
             lines.append(" | ".join(parts))
 
-        special = loadout.get_component(ComponentSlot.SPECIAL)
-        if special and special.get("ability_type"):
+        for special in loadout.get_specials():
             lines.append(f"Special: {special.name}")
 
         st = loadout.get_component(ComponentSlot.STEALTH)
@@ -191,8 +190,7 @@ class ViewWeapons(MenuAction):
                 except (ValueError, KeyError):
                     lines.append(f"  Slot {slot_num}: {wtype.title()}")
 
-        special = loadout.get_component(ComponentSlot.SPECIAL)
-        if special and special.get("ability_type"):
+        for special in loadout.get_specials():
             atype = special.get("ability_type")
             lines.append(f"\nSpecial: {special.name}")
             if atype == "teleportation":

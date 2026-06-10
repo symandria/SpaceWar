@@ -48,18 +48,152 @@ BOSS_RANKS = {
 # not by race.
 BASE_RACES = ("federation", "klingon", "tholian", "dominion", "borg")
 
+# Terrain definitions. Asteroid counts target roughly 5-10% of the
+# ~600 board hexes for fields. Every terrain has something to harvest
+# except open space, which instead brings extra (un-teamed) hostiles.
 ENVIRONMENTS = {
-    "clear": {"asteroids": (0, 2), "nebula_red": 0, "nebula_green": 0, "nebula_purple": 0},
-    "asteroid_field": {"asteroids": (6, 12), "nebula_red": 0, "nebula_green": 0, "nebula_purple": 0},
-    "red_nebula": {"asteroids": (1, 4), "nebula_red": 2, "nebula_green": 0, "nebula_purple": 0},
-    "green_nebula": {"asteroids": (1, 3), "nebula_red": 0, "nebula_green": 2, "nebula_purple": 0},
-    "purple_nebula": {"asteroids": (0, 2), "nebula_red": 0, "nebula_green": 0, "nebula_purple": 2},
-    "mixed_hazard": {"asteroids": (3, 6), "nebula_red": 1, "nebula_green": 1, "nebula_purple": 1},
-    "dense_field": {"asteroids": (8, 15), "nebula_red": 1, "nebula_green": 0, "nebula_purple": 1},
+    "clear": {
+        "label": "Open Space", "weight": 1,
+        "asteroids": (2, 5), "harvestable": False, "extra_enemies": 1,
+        "nebula": None, "clusters": 0,
+        "anomaly_chance": 0.0, "anomaly_quality": 0,
+    },
+    "asteroid_field": {
+        "label": "Asteroid Field", "weight": 2,
+        "asteroids": (30, 55), "harvestable": True, "extra_enemies": 0,
+        "nebula": None, "clusters": 0,
+        "anomaly_chance": 0.0, "anomaly_quality": 0,
+    },
+    "dense_field": {
+        "label": "Dense Asteroid Field", "weight": 1,
+        "asteroids": (40, 65), "harvestable": True, "extra_enemies": 0,
+        "nebula": None, "clusters": 0,
+        "anomaly_chance": 0.0, "anomaly_quality": 0,
+    },
+    "green_nebula": {
+        "label": "Green Nebula", "weight": 2,
+        "asteroids": (4, 10), "harvestable": True, "extra_enemies": 0,
+        "nebula": "green", "clusters": 3,
+        "anomaly_chance": 0.4, "anomaly_quality": 1,
+    },
+    "red_nebula": {
+        "label": "Red Nebula", "weight": 1,
+        "asteroids": (4, 10), "harvestable": True, "extra_enemies": 0,
+        "nebula": "red", "clusters": 3,
+        "anomaly_chance": 0.7, "anomaly_quality": 2,
+    },
+    "purple_nebula": {
+        "label": "Purple Nebula", "weight": 1,
+        "asteroids": (3, 8), "harvestable": True, "extra_enemies": 0,
+        "nebula": "purple", "clusters": 3,
+        "anomaly_chance": 1.0, "anomaly_quality": 3,
+    },
+    "mixed_hazard": {
+        "label": "Hazard Zone", "weight": 1,
+        "asteroids": (10, 20), "harvestable": True, "extra_enemies": 0,
+        "nebula": "mixed", "clusters": 3,
+        "anomaly_chance": 0.6, "anomaly_quality": 2,
+    },
+    "ion_storm": {
+        "label": "Ion Storm", "weight": 1,
+        "asteroids": (3, 8), "harvestable": True, "extra_enemies": 0,
+        "nebula": "ion", "clusters": 3,
+        "anomaly_chance": 0.5, "anomaly_quality": 2,
+    },
+    "plasma_field": {
+        "label": "Plasma Field", "weight": 1,
+        "asteroids": (3, 8), "harvestable": True, "extra_enemies": 0,
+        "nebula": "plasma", "clusters": 3,
+        "anomaly_chance": 0.6, "anomaly_quality": 2,
+    },
+    "gravity_rift": {
+        "label": "Gravity Rift", "weight": 1,
+        "asteroids": (5, 12), "harvestable": True, "extra_enemies": 0,
+        "nebula": "gravity", "clusters": 2,
+        "anomaly_chance": 0.8, "anomaly_quality": 3,
+    },
+    "static_cloud": {
+        "label": "Static Cloud", "weight": 1,
+        "asteroids": (4, 10), "harvestable": True, "extra_enemies": 0,
+        "nebula": "static", "clusters": 4,
+        "anomaly_chance": 0.4, "anomaly_quality": 1,
+    },
+    "tachyon_stream": {
+        "label": "Tachyon Stream", "weight": 1,
+        "asteroids": (3, 8), "harvestable": True, "extra_enemies": 0,
+        "nebula": "tachyon", "clusters": 3,
+        "anomaly_chance": 0.5, "anomaly_quality": 2,
+    },
+    # --- Zones inspired by the Space Race track segments ---
+    "solar_flare": {
+        "label": "Solar Flare Corridor", "weight": 1,
+        "asteroids": (3, 8), "harvestable": True, "extra_enemies": 0,
+        "nebula": None, "clusters": 0,
+        "anomaly_chance": 0.2, "anomaly_quality": 1,
+        "zone_effect": "solar_flare",
+    },
+    "comet_tail": {
+        "label": "Comet Tail", "weight": 1,
+        "asteroids": (6, 12), "harvestable": True, "extra_enemies": 0,
+        "nebula": "comet", "clusters": 4,
+        "anomaly_chance": 0.3, "anomaly_quality": 1,
+    },
+    "debris_ring": {
+        "label": "Shattered Moon Debris Ring", "weight": 1,
+        "asteroids": (15, 30), "harvestable": True, "extra_enemies": 0,
+        "nebula": None, "clusters": 0,
+        "anomaly_chance": 0.2, "anomaly_quality": 1,
+        "wrecks": (2, 4),
+    },
+    "warship_graveyard": {
+        "label": "Derelict Warship Graveyard", "weight": 1,
+        "asteroids": (4, 8), "harvestable": True, "extra_enemies": 0,
+        "nebula": None, "clusters": 0,
+        "anomaly_chance": 0.5, "anomaly_quality": 2,
+        "wrecks": (4, 7),
+    },
+    "everbright": {
+        "label": "Everbright Nebula", "weight": 1,
+        "asteroids": (3, 8), "harvestable": True, "extra_enemies": 0,
+        "nebula": "everbright", "clusters": 3,
+        "anomaly_chance": 0.4, "anomaly_quality": 2,
+    },
+    "black_hole": {
+        "label": "Micro Black Hole", "weight": 1,
+        "asteroids": (5, 10), "harvestable": True, "extra_enemies": 0,
+        "nebula": "blackhole", "clusters": 1, "cluster_radius": 0,
+        "anomaly_chance": 0.9, "anomaly_quality": 3,
+    },
+    "turret_zone": {
+        "label": "Automated Defense Zone", "weight": 1,
+        "asteroids": (5, 10), "harvestable": True, "extra_enemies": 0,
+        "nebula": None, "clusters": 0,
+        "anomaly_chance": 0.3, "anomaly_quality": 2,
+        "turrets": (1, 2),
+    },
+    "slipstream": {
+        "label": "Slipstream Corridor", "weight": 1,
+        "asteroids": (2, 6), "harvestable": True, "extra_enemies": 0,
+        "nebula": "slipstream", "clusters": 4,
+        "anomaly_chance": 0.3, "anomaly_quality": 1,
+    },
 }
 
 
-def generate_battle_config(tier, node_type=NodeType.BATTLE, races=None):
+def pick_environment():
+    keys = list(ENVIRONMENTS)
+    weights = [ENVIRONMENTS[k]["weight"] for k in keys]
+    return random.choices(keys, weights=weights, k=1)[0]
+
+
+# Region sizes in base-map units (height x length). The standard
+# board is 2x2; boss arenas may also be a tight 1x1.
+REGION_SIZES = ["1x2", "1x3", "2x2", "2x3"]
+BOSS_REGION_SIZES = REGION_SIZES + ["1x1"]
+
+
+def generate_battle_config(tier, node_type=NodeType.BATTLE, races=None,
+                           environment=None):
     if races:
         races = [r for r in races if r != "sentry"]
     else:
@@ -67,31 +201,75 @@ def generate_battle_config(tier, node_type=NodeType.BATTLE, races=None):
     ranks = TIER_RANKS.get(tier, TIER_RANKS[1])
 
     if node_type == NodeType.BOSS:
-        boss_rank = BOSS_RANKS[tier]
-        boss_race = random.choice(races)
-        enemies = [(boss_rank, boss_race)]
-        if tier >= 2:
-            enemies.append((random.choice(ranks), random.choice(races)))
-        if tier == 3:
-            enemies.append((random.choice(ranks), random.choice(races)))
-        env = "mixed_hazard" if tier >= 2 else "clear"
-    elif node_type == NodeType.ELITE:
-        count = random.randint(*TIER_ENEMY_COUNTS[tier])
-        elite_ranks = ranks[-1:] if ranks else [RANKS[0]]
-        enemies = [(random.choice(elite_ranks), random.choice(races))
-                    for _ in range(count)]
-        env = random.choice(list(ENVIRONMENTS.keys()))
+        map_size = random.choice(BOSS_REGION_SIZES)
     else:
+        map_size = random.choice(REGION_SIZES)
+
+    if environment is None:
+        environment = pick_environment()
+    env_data = ENVIRONMENTS.get(environment, ENVIRONMENTS["clear"])
+
+    from spacewar.roguelike.factions import (
+        pick_region_factions, random_faction_race, BOSS_FACTIONS,
+    )
+    has_anomalies = env_data.get("anomaly_chance", 0) > 0
+
+    boss_mode = None
+    boss_faction = None
+    factions = []
+    if node_type == NodeType.BOSS:
+        # Bosses can be unique, or styled after any faction. A lone-wolf
+        # pirate boss trusts nobody, so it always duels alone.
+        boss_faction = random.choice(BOSS_FACTIONS)
+        if boss_faction == "pirates_lone":
+            boss_mode = "duel"
+        else:
+            # Either a lone boss at twice the player's power, or a
+            # teamed pair matching the player's power level.
+            boss_mode = random.choice(["duel", "pair"])
+        if boss_faction == "unique":
+            boss_race = random.choice(races)
+            faction_tag = None
+        else:
+            # Faction ships keep their signature sprite even when it
+            # comes from another theme's asset pool.
+            boss_race = random_faction_race(boss_faction) or \
+                random.choice(races)
+            faction_tag = boss_faction
+            factions = [boss_faction]
+        if boss_mode == "duel":
+            enemies = [(BOSS_RANKS[tier], boss_race, faction_tag)]
+        else:
+            pair_rank = ranks[-1] if ranks else RANKS[0]
+            enemies = [(pair_rank, boss_race, faction_tag),
+                       (pair_rank, boss_race, faction_tag)]
+    else:
+        factions = pick_region_factions(env_data, has_anomalies)
+        hostile = [f for f in factions if f != "colonial"]
         count = random.randint(*TIER_ENEMY_COUNTS[tier])
-        enemies = [(random.choice(ranks), random.choice(races))
-                    for _ in range(count)]
-        env = random.choice(list(ENVIRONMENTS.keys()))
+        count += env_data.get("extra_enemies", 0)
+        if node_type == NodeType.ELITE:
+            pick_ranks = ranks[-1:] if ranks else [RANKS[0]]
+        else:
+            pick_ranks = ranks
+        enemies = []
+        for _ in range(count):
+            faction = random.choice(hostile) if hostile else None
+            race = random_faction_race(faction) if faction else None
+            if race is None:
+                race = random.choice(races)
+            enemies.append((random.choice(pick_ranks), race, faction))
 
     return {
         "enemies": enemies,
-        "environment": env,
+        "environment": environment,
         "tier": tier,
         "is_boss": node_type == NodeType.BOSS,
+        "boss_mode": boss_mode,
+        "boss_faction": boss_faction,
+        "factions": factions,
+        "colonial": "colonial" in factions,
+        "map_size": map_size,
     }
 
 

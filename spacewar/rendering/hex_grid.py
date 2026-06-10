@@ -1,9 +1,9 @@
 import pygame
 
+from spacewar.config import constants
 from spacewar.config.constants import (
-    GRID_ROWS, GRID_COLS_ODD, GRID_COLS_EVEN, SCREEN_SIZE,
     HEX_SPACING_X, HEX_SPACING_Y, HEX_OFFSET_X, HEX_TILE_SIZE,
-    GRID_MARGIN_X, GRID_MARGIN_Y, PLAY_AREA_TOP, SPRITE_HALF, max_col,
+    GRID_MARGIN_X, GRID_MARGIN_Y, PLAY_AREA_TOP, SPRITE_HALF,
 )
 
 
@@ -51,10 +51,10 @@ class HexGrid:
             self.invalid_surface.set_at(pt, (206, 207, 156))
 
     def build_background(self):
-        screen = pygame.Surface(SCREEN_SIZE)
+        screen = pygame.Surface(constants.SCREEN_SIZE)
         screen.fill(self.background)
-        for row in range(GRID_ROWS):
-            cols = GRID_COLS_EVEN if row % 2 else GRID_COLS_ODD
+        for row in range(constants.GRID_ROWS):
+            cols = constants.GRID_COLS_EVEN if row % 2 else constants.GRID_COLS_ODD
             for column in range(cols):
                 screen.blit(self.hex_tile, (
                     GRID_MARGIN_X + HEX_SPACING_X * column + (row % 2) * HEX_OFFSET_X,
@@ -74,8 +74,8 @@ class HexGrid:
         x, y = pos
         x_min = GRID_MARGIN_X
         y_min = PLAY_AREA_TOP
-        x_max = GRID_MARGIN_X + (GRID_COLS_ODD - 1) * HEX_SPACING_X + HEX_TILE_SIZE - 2
-        y_max = PLAY_AREA_TOP + GRID_ROWS * HEX_SPACING_Y - 1
+        x_max = GRID_MARGIN_X + (constants.GRID_COLS_ODD - 1) * HEX_SPACING_X + HEX_TILE_SIZE - 2
+        y_max = PLAY_AREA_TOP + constants.GRID_ROWS * HEX_SPACING_Y - 1
         if x < x_min or y < y_min or x > x_max or y > y_max:
             return None
         elif x < x_min + HEX_OFFSET_X and (y - y_min) % (2 * HEX_SPACING_Y) >= HEX_SPACING_Y:

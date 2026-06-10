@@ -20,8 +20,8 @@ RACE_COMPONENT_OVERRIDES = {
     },
     "klingon": {
         "stealth": lambda: basic_stealth(active_cloak=True),
-        "weapon_1": lambda: _weapon(1, "disruptors", weapon_range=6),
-        "weapon_2": lambda: _weapon(2, "mines"),
+        "weapon_1": lambda: _weapon(1, "disruptors", weapon_range=8),
+        "weapon_2": lambda: _weapon(2, "mines", weapon_range=1),
     },
     "tholian": {
         "engine": lambda: basic_engine(acceleration=3),
@@ -48,7 +48,7 @@ RACE_COMPONENT_OVERRIDES = {
         "shields": lambda: _regen_shields(10),
         "special": lambda: teleportation_special(teleport_range=10, recharge=3),
         "weapon_1": lambda: _weapon(1, "point_lazers"),
-        "weapon_2": lambda: _weapon(2, "disruptors", weapon_range=6),
+        "weapon_2": lambda: _weapon(2, "disruptors", weapon_range=8),
     },
     "narn": {
         "shields": lambda: basic_shields(active_dr=50),
@@ -59,13 +59,13 @@ RACE_COMPONENT_OVERRIDES = {
     "centauri": {
         "shields": lambda: _regen_shields(10, active_dr=50),
         "weapon_1": lambda: _weapon(1, "lazers"),
-        "weapon_2": lambda: _weapon(2, "mines"),
+        "weapon_2": lambda: _weapon(2, "mines", weapon_range=1),
     },
     "shadow": {
         "stealth": lambda: basic_stealth(active_cloak=True),
         "special": lambda: teleportation_special(teleport_range=10, recharge=3),
         "shields": lambda: _regen_shields(10),
-        "weapon_1": lambda: _weapon(1, "disruptors", weapon_range=6),
+        "weapon_1": lambda: _weapon(1, "disruptors", weapon_range=8),
         "weapon_2": lambda: _weapon(2, "shockwave", weapon_range=2),
     },
     "terran": {
@@ -75,7 +75,7 @@ RACE_COMPONENT_OVERRIDES = {
     },
     "psiloth": {
         "stealth": lambda: basic_stealth(active_cloak=True),
-        "weapon_1": lambda: _weapon(1, "disruptors", weapon_range=6),
+        "weapon_1": lambda: _weapon(1, "disruptors", weapon_range=8),
         "weapon_2": lambda: _weapon(2, "torpedoes"),
     },
     "zlorg": {
@@ -86,7 +86,7 @@ RACE_COMPONENT_OVERRIDES = {
     "wental": {
         "shields": lambda: _regen_shields(10),
         "weapon_1": lambda: _weapon(1, "lazers"),
-        "weapon_2": lambda: _weapon(2, "mines"),
+        "weapon_2": lambda: _weapon(2, "mines", weapon_range=1),
     },
     "riftbound": {
         "special": lambda: teleportation_special(teleport_range=10, recharge=3),

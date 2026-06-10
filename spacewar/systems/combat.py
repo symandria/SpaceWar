@@ -2,7 +2,7 @@ import math
 
 import pygame
 
-from spacewar.config.constants import SCREEN_SIZE
+from spacewar.config import constants
 from spacewar.entities.ship import Ship
 from spacewar.entities.torpedo import Torpedo
 from spacewar.entities.mine import Mine
@@ -38,27 +38,48 @@ class CombatSystem:
         return 1
 
     def _get_phaser_color(self, who, step=0):
-        races = self._theme_loader.active_races
-        if who.type in races:
-            color = self._theme_loader.get_phaser_color(who.type)
-        else:
-            color = self._theme_loader.get_phaser_color("sentry")
+        # Priority: the equipped weapon's own color, then the ship's
+        # faction color, then the race's theme data.
+        comp = None
+        if who.action in ("phaser", "weapon_1"):
+            comp = who.loadout.get_weapon(1)
+        elif who.action in ("torpedo", "weapon_2"):
+            comp = who.loadout.get_weapon(2)
+        color = comp.get("phaser_color") if comp else None
+        if color is None:
+            color = getattr(who, 'phaser_color', None)
+        if color is None:
+            try:
+                color = self._theme_loader.get_phaser_color(who.type)
+            except KeyError:
+                color = self._theme_loader.get_phaser_color("sentry")
         if isinstance(color[0], (list, tuple)):
             color = color[step % len(color)]
         return color
 
     def _get_torpedo_color(self, who):
-        races = self._theme_loader.active_races
-        if who.type in races:
+        try:
             return self._theme_loader.get_torpedo_color(who.type)
-        return self._theme_loader.get_torpedo_color("sentry")
+        except KeyError:
+            return self._theme_loader.get_torpedo_color("sentry")
+
+    @staticmethod
+    def _credit_kill(match_stats, player, target):
+        # Faction ships may be from any theme; the kill key might not
+        # have been pre-seeded.
+        stats = match_stats[player]
+        key = "kills-" + target.type
+        stats[key] = stats.get(key, 0) + 1
 
     def _check_range(self, who, target_hex, weapon_type):
         stats = WEAPON_STATS[weapon_type]
-        if stats.get("range_fixed") and weapon_type == WeaponType.SHOCKWAVE:
-            return True
+        if weapon_type == WeaponType.SHOCKWAVE:
+            return True  # always centered on self
         ship_hex = HexGrid.coords_to_hex(who.pos)
         dist = HexGrid.hex_distance(ship_hex, target_hex)
+        if stats.get("range_fixed"):
+            # e.g. mines: drop range cannot be increased by components
+            return dist <= stats["max_range"]
         comp = who.loadout.get_weapon(1) if who.action in ("phaser", "weapon_1") \
             else who.loadout.get_weapon(2)
         weapon_range = stats["max_range"]
@@ -80,9 +101,9 @@ class CombatSystem:
                                     match_stats, team_game, player,
                                     phaser_hit_this_turn, wtype)
         elif wtype == WeaponType.DISRUPTORS:
-            return self.fire_hitscan(who, target_hex, step, ships, torpedoes,
-                                    match_stats, team_game, player,
-                                    phaser_hit_this_turn, wtype)
+            self.fire_disruptor_volley(who, target_hex, torpedoes,
+                                       match_stats, player)
+            return None, phaser_hit_this_turn
         elif wtype == WeaponType.POINT_LAZERS:
             return self.fire_point_lazers(who, target_hex, ships,
                                          match_stats, team_game, player)
@@ -117,10 +138,11 @@ class CombatSystem:
         dx, dy = where[0] - origin[0], where[1] - origin[1]
         if abs(dx) <= 0.01 and abs(dy) <= 0.01:
             dx = 100
-        while 0 < where[0] < SCREEN_SIZE[0] and 0 < where[1] < SCREEN_SIZE[1]:
+        screen_size = constants.SCREEN_SIZE
+        while 0 < where[0] < screen_size[0] and 0 < where[1] < screen_size[1]:
             where = where[0] + dx, where[1] + dy
 
-        temp = pygame.surface.Surface(SCREEN_SIZE)
+        temp = pygame.surface.Surface(screen_size)
         pygame.draw.line(temp, (255, 255, 255), origin, where, 2)
         temp.set_colorkey((0, 0, 0))
         mask = pygame.mask.from_surface(temp)
@@ -153,7 +175,7 @@ class CombatSystem:
                 was_dead = what.is_dead()
                 what.apply_damage(damage_per_hit * damage_multiplier)
                 if who == player and what.is_dead() and not was_dead:
-                    match_stats[player]["kills-" + what.type] += 1
+                    self._credit_kill(match_stats, player, what)
                 if team_game and who.type == what.type:
                     match_stats[who]["teamdamage"] -= damage_per_hit * damage_multiplier
                 else:
@@ -174,6 +196,39 @@ class CombatSystem:
         return self.fire_hitscan(who, target_hex, step, ships, torpedoes,
                                 match_stats, team_game, player,
                                 phaser_hit_this_turn, WeaponType.LAZERS)
+
+    def fire_disruptor_volley(self, who, target_hex, torpedoes,
+                              match_stats, player):
+        """One volley: two tiny bolts, offset to the ship's right and
+        left, flying at the target like miniature torpedoes."""
+        if not self._check_range(who, target_hex, WeaponType.DISRUPTORS):
+            return
+        self._asset_loader.play_sound("phaser")
+        color = self._get_phaser_color(who)
+        if isinstance(color[0], (list, tuple)):
+            color = color[0]
+        stats = WEAPON_STATS[WeaponType.DISRUPTORS]
+        damage = stats["damage_per_hit"](who.weapon_power)
+        damage *= self._get_ambush_multiplier(who)
+
+        where = HexGrid.hex_to_coords(*target_hex)
+        where = where[0] + 4, where[1] + 4
+        origin = int(who.pos[0]) + 4, int(who.pos[1]) + 4
+        dx, dy = where[0] - origin[0], where[1] - origin[1]
+        dist = math.hypot(dx, dy)
+        if dist < 0.01:
+            dx, dy, dist = 1.0, 0.0, 1.0
+        px, py = -dy / dist, dx / dist
+        for side in (-2, 2):
+            start = (origin[0] + px * side, origin[1] + py * side)
+            end = (where[0] + px * side, where[1] + py * side)
+            bolt = Torpedo(start, end, who, damage, color)
+            bolt.is_bolt = True
+            bolt.rect = pygame.Rect(0, 0, 2, 2)
+            bolt.rect.center = bolt.pos
+            bolt.mask = pygame.mask.Mask((2, 2))
+            bolt.mask.fill()
+            torpedoes.append(bolt)
 
     def fire_point_lazers(self, who, target_hex, ships, match_stats,
                           team_game, player):
@@ -204,7 +259,7 @@ class CombatSystem:
             was_dead = closest.is_dead()
             closest.apply_damage(damage)
             if who == player and closest.is_dead() and not was_dead:
-                match_stats[player]["kills-" + closest.type] += 1
+                self._credit_kill(match_stats, player, closest)
             if team_game and who.type == closest.type:
                 match_stats[who]["teamdamage"] -= damage
             else:
@@ -228,7 +283,7 @@ class CombatSystem:
                 was_dead = target.is_dead()
                 target.apply_damage(damage)
                 if who == player and target.is_dead() and not was_dead:
-                    match_stats[player]["kills-" + target.type] += 1
+                    self._credit_kill(match_stats, player, target)
                 if team_game and who.type == target.type:
                     match_stats[who]["teamdamage"] -= damage
                 else:
@@ -300,12 +355,13 @@ class CombatSystem:
                         self._detonate_he(torp, ships, match_stats,
                                           team_game, player)
                     else:
-                        if torp.firer == player:
+                        if torp.firer == player and \
+                                not getattr(torp, 'is_bolt', False):
                             match_stats[player]["torpedoes hit"] += 1
                         was_dead = target.is_dead()
                         target.apply_damage(torp.power)
                         if torp.firer == player and target.is_dead() and not was_dead:
-                            match_stats[player]["kills-" + target.type] += 1
+                            self._credit_kill(match_stats, player, target)
                         if team_game and torp.firer.type == target.type:
                             match_stats[torp.firer]["teamdamage"] -= torp.power
                         else:
@@ -318,6 +374,12 @@ class CombatSystem:
             if not hit:
                 for other in torpedoes:
                     if other == torp or not other.active:
+                        continue
+                    # Bolts from the same volley fly in formation and
+                    # must not shoot each other down.
+                    if torp.firer == other.firer and \
+                            getattr(torp, 'is_bolt', False) and \
+                            getattr(other, 'is_bolt', False):
                         continue
                     if torp.rect.colliderect(other.rect):
                         self._asset_loader.play_sound("hit")
@@ -339,24 +401,48 @@ class CombatSystem:
         for mine in mines[:]:
             if not mine.active:
                 continue
-            for target in ships:
-                if target == mine.firer:
+            mine_hex = mine.hex_pos
+            if mine_hex is None:
+                continue
+
+            if not mine.armed:
+                # Arms once its owner is 2+ hexes away (or gone).
+                owner = mine.firer
+                if owner not in ships:
+                    mine.armed = True
+                else:
+                    ohex = HexGrid.coords_to_hex(owner.pos)
+                    if ohex is None or HexGrid.hex_distance(mine_hex, ohex) >= 2:
+                        mine.armed = True
+                if not mine.armed:
                     continue
-                offset = (int(mine.rect.left - target.pos[0]),
-                          int(mine.rect.top - target.pos[1]))
-                if target.mask.overlap(mine.mask, offset):
-                    asset_loader.play_sound("explode")
-                    was_dead = target.is_dead()
-                    target.apply_damage(mine.power)
-                    if mine.firer == player and target.is_dead() and not was_dead:
-                        match_stats[player]["kills-" + target.type] += 1
+
+            # Armed: detonates when any ship (including the owner) moves
+            # within 1 hex, damaging everything in that radius.
+            triggered = any(
+                (thex := HexGrid.coords_to_hex(t.pos)) is not None and
+                HexGrid.hex_distance(mine_hex, thex) <= 1
+                for t in ships)
+            if not triggered:
+                continue
+
+            asset_loader.play_sound("explode")
+            firer_stats = match_stats.get(mine.firer)
+            for target in ships:
+                thex = HexGrid.coords_to_hex(target.pos)
+                if thex is None or HexGrid.hex_distance(mine_hex, thex) > 1:
+                    continue
+                was_dead = target.is_dead()
+                target.apply_damage(mine.power)
+                if mine.firer == player and target.is_dead() and not was_dead:
+                    self._credit_kill(match_stats, player, target)
+                if firer_stats is not None:
                     if team_game and mine.firer.type == target.type:
-                        match_stats[mine.firer]["teamdamage"] -= mine.power
+                        firer_stats["teamdamage"] -= mine.power
                     else:
-                        match_stats[mine.firer]["damage"] += mine.power
-                    mine.detonate()
-                    mines.remove(mine)
-                    break
+                        firer_stats["damage"] += mine.power
+            mine.detonate()
+            mines.remove(mine)
 
     def _detonate_he(self, torp, ships, match_stats, team_game, player):
         torp_hex = HexGrid.coords_to_hex(torp.pos)
@@ -369,7 +455,7 @@ class CombatSystem:
                 was_dead = target.is_dead()
                 target.apply_damage(torp.power)
                 if torp.firer == player and target.is_dead() and not was_dead:
-                    match_stats[player]["kills-" + target.type] += 1
+                    self._credit_kill(match_stats, player, target)
                 if team_game and torp.firer.type == target.type:
                     match_stats[torp.firer]["teamdamage"] -= torp.power
                 else:

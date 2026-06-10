@@ -65,10 +65,40 @@ class ThemeLoader:
             self.ships["sentry"] = self._asset_loader.load_image(
                 os.path.join(folder, image), colorkey)
 
+    def find_race_theme(self, race):
+        """Theme that owns a race, searching the active theme first.
+        Factions may borrow any theme's ships as assets."""
+        if race in self.themes.get(self.active_theme, {}).get("Races", {}):
+            return self.active_theme
+        for theme_name, data in self.themes.items():
+            if race in data["Races"]:
+                return theme_name
+        return None
+
     def get_race_data(self, race):
         if race == "sentry":
             return self.themes[self.active_theme]["Special"]["sentry"]
-        return self.themes[self.active_theme]["Races"][race]
+        theme = self.find_race_theme(race)
+        if theme is None:
+            raise KeyError(race)
+        return self.themes[theme]["Races"][race]
+
+    def ensure_race_loaded(self, race):
+        """Load a race's sprites into the active lookup, from whichever
+        theme owns them. Returns True when the sprite is available."""
+        if race in self.ships:
+            return True
+        try:
+            data = self.get_race_data(race)
+        except KeyError:
+            return False
+        image, folder, colorkey = data["image"], data["folder"], data["colorkey"]
+        self.ships[race] = self._asset_loader.load_image(
+            os.path.join(folder, image), colorkey)
+        if "cloaked" in data:
+            self.ships["cloaked-" + race] = self._asset_loader.load_image(
+                os.path.join(folder, data["cloaked"]), colorkey)
+        return True
 
     def get_specials(self, race):
         data = self.get_race_data(race)

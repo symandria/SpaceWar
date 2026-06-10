@@ -1,6 +1,7 @@
 import math
 from spacewar.rendering.hex_grid import HexGrid
-from spacewar.config.constants import GRID_ROWS, max_col
+from spacewar.config import constants
+from spacewar.config.constants import max_col
 
 
 class VisibilitySystem:
@@ -12,13 +13,17 @@ class VisibilitySystem:
         facing_rad = math.radians(90 - ship.angle)
         forward_clear = ship.vision_forward
         backward_clear = ship.vision_backward
+        if getattr(ship, 'sensor_static', False):
+            # Static clouds halve sensor range.
+            forward_clear = max(2, forward_clear // 2)
+            backward_clear = max(1, backward_clear // 2)
         forward_shaded = math.ceil(forward_clear * 1.3)
         backward_shaded = math.ceil(backward_clear * 1.3)
 
         clear = set()
         shaded = set()
 
-        for row in range(1, GRID_ROWS + 1):
+        for row in range(1, constants.GRID_ROWS + 1):
             for col in range(1, max_col(row) + 1):
                 dist = HexGrid.hex_distance(ship_hex, (row, col))
                 if dist == 0:
@@ -90,7 +95,7 @@ class VisibilitySystem:
     def get_fog_data(self, ship):
         clear, shaded = self.compute_visibility(ship)
         all_hexes = set()
-        for row in range(1, GRID_ROWS + 1):
+        for row in range(1, constants.GRID_ROWS + 1):
             for col in range(1, max_col(row) + 1):
                 all_hexes.add((row, col))
         fog = all_hexes - clear - shaded

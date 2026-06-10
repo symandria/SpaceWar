@@ -1,5 +1,5 @@
 import pygame
-from spacewar.config.constants import SCREEN_SIZE, HEX_SPACING_X, HEX_SPACING_Y
+from spacewar.config import constants
 
 
 VIEWPORT_SIZE = (160, 160)
@@ -7,17 +7,19 @@ VIEWPORT_SIZE = (160, 160)
 
 class Viewport:
     def __init__(self):
-        self.center = (SCREEN_SIZE[0] // 2, SCREEN_SIZE[1] // 2)
+        screen_size = constants.SCREEN_SIZE
+        self.center = (screen_size[0] // 2, screen_size[1] // 2)
         self.size = VIEWPORT_SIZE
 
     def update(self, ship_pos, sensor_range=10):
+        screen_size = constants.SCREEN_SIZE
         target_x = int(ship_pos[0]) + 4
         target_y = int(ship_pos[1]) + 4
         half_w = self.size[0] // 2
         half_h = self.size[1] // 2
 
-        x = max(half_w, min(target_x, SCREEN_SIZE[0] - half_w))
-        y = max(half_h, min(target_y, SCREEN_SIZE[1] - half_h))
+        x = max(half_w, min(target_x, screen_size[0] - half_w))
+        y = max(half_h, min(target_y, screen_size[1] - half_h))
         self.center = (x, y)
 
     def get_view_rect(self):

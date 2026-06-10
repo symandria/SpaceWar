@@ -3,6 +3,20 @@ from collections import OrderedDict
 
 import pygame
 
+# The original base map is one "unit" (14 rows x 11 columns). Regions
+# come in multiples of it, height x length: 1x2, 1x3, 2x2, 2x3 (and
+# 1x1 for boss arenas). The default board is 2x2.
+BASE_GRID_ROWS = 14
+BASE_GRID_COLS = 11
+
+MAP_SIZES = {
+    "1x1": (1, 1),
+    "1x2": (1, 2),
+    "1x3": (1, 3),
+    "2x2": (2, 2),
+    "2x3": (2, 3),
+}
+
 GRID_ROWS = 28
 GRID_COLS_ODD = 22
 GRID_COLS_EVEN = 21
@@ -20,10 +34,14 @@ def max_col(row):
     return GRID_COLS_EVEN if row % 2 == 0 else GRID_COLS_ODD
 
 
-SCREEN_SIZE = (
-    GRID_MARGIN_X + (GRID_COLS_ODD - 1) * HEX_SPACING_X + HEX_TILE_SIZE + 3,
-    GRID_MARGIN_Y + (GRID_ROWS - 1) * HEX_SPACING_Y + HEX_TILE_SIZE,
-)
+def _compute_screen_size():
+    return (
+        GRID_MARGIN_X + (GRID_COLS_ODD - 1) * HEX_SPACING_X + HEX_TILE_SIZE + 3,
+        GRID_MARGIN_Y + (GRID_ROWS - 1) * HEX_SPACING_Y + HEX_TILE_SIZE,
+    )
+
+
+SCREEN_SIZE = _compute_screen_size()
 
 BITBOX = pygame.mask.Mask((9, 9))
 BITBOX.fill()
@@ -37,6 +55,19 @@ def _build_sentry_invalid():
     return tuple(invalid)
 
 SENTRY_INVALID = _build_sentry_invalid()
+
+
+def set_map_size(height_units, width_units):
+    """Resize the active board. Consumers must read grid dimensions
+    dynamically (constants.GRID_ROWS / max_col), and the game must
+    rebuild its world surface afterwards."""
+    global GRID_ROWS, GRID_COLS_ODD, GRID_COLS_EVEN, SCREEN_SIZE, \
+        SENTRY_INVALID
+    GRID_ROWS = BASE_GRID_ROWS * height_units
+    GRID_COLS_ODD = BASE_GRID_COLS * width_units
+    GRID_COLS_EVEN = GRID_COLS_ODD - 1
+    SCREEN_SIZE = _compute_screen_size()
+    SENTRY_INVALID = _build_sentry_invalid()
 
 RANKS = (
     "cadet",

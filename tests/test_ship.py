@@ -18,10 +18,10 @@ class TestShipCreation:
         assert default_ship.acceleration == 2
         assert default_ship.turning_degrees == 90
         assert default_ship.maneuvering_points == 1
-        assert default_ship.vision_forward == 10
-        assert default_ship.vision_backward == 5
+        assert default_ship.vision_forward == 14
+        assert default_ship.vision_backward == 7
         assert default_ship.cloak_detection == 0
-        assert default_ship.passive_regen == 5
+        assert default_ship.passive_regen == 2
         assert default_ship.active_dr == 0
         assert default_ship.collision_damage == 25
         assert not default_ship.active_cloak

@@ -41,10 +41,12 @@ class Run:
     def apply_battle_results(self, player_won, enemies_killed, player_hull, player_shields):
         # Matches Ship.is_dead(): hull 0 is still alive, below 0 is destroyed.
         self.hull = max(player_hull, 0)
-        self.shields = max(player_shields, 0)
         if player_hull < 0:
+            self.shields = 0
             self.alive = False
             return None
+        # Shields recharge between nodes; hull damage persists.
+        self.shields = self.max_shields
 
         self.battles_won += 1 if player_won else 0
         self.total_kills += enemies_killed

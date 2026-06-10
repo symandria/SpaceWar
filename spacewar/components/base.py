@@ -9,6 +9,8 @@ class ComponentSlot(Enum):
     WEAPON_1 = "weapon_1"
     WEAPON_2 = "weapon_2"
     SPECIAL = "special"
+    SPECIAL_2 = "special_2"
+    TRACTOR = "tractor"
     POWER_SOURCE = "power_source"
     STEALTH = "stealth"
 

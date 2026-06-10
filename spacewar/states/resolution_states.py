@@ -4,6 +4,27 @@ from spacewar.rendering.hex_grid import HexGrid
 from spacewar.states.state_machine import GameState, StateID
 
 
+def _roguelike_battle_over(game):
+    """In a run, kills never end the zone - you fly out the right edge.
+    The two exceptions: your own death, and the final boss going down.
+    Returns (message, game_over)."""
+    b = game.battle
+    run = game.active_run
+    if b.home_player not in b.ships:
+        return "Your ship was destroyed.", True
+    config = game.roguelike_battle_config or {}
+    if config.get("is_boss") and run is not None and run.current_tier >= 3:
+        hostiles = [
+            s for s in b.ships
+            if s != b.player and not (getattr(s, 'is_shop', False) and
+                                      not getattr(s, 'hostile', False))
+        ]
+        if not hostiles:
+            return ("The final boss is destroyed!\n"
+                    "The sector is yours."), True
+    return None, False
+
+
 class TurnResolutionState(GameState):
     def __init__(self, game):
         super().__init__(game)
@@ -17,10 +38,13 @@ class TurnResolutionState(GameState):
         tr = g.turn_resolver
         self.draw_phasers = tr.tick(g.battle)
         if not tr.is_active:
-            result_text, game_over = g.scoring_system.calculate_results(
-                g.battle.ships, g.battle.dead_ships, g.battle.match_stats,
-                g.battle.team_game, g.battle.home_player,
-                g.instant_action, g.player_character, g.text_manager)
+            if g.active_run:
+                result_text, game_over = _roguelike_battle_over(g)
+            else:
+                result_text, game_over = g.scoring_system.calculate_results(
+                    g.battle.ships, g.battle.dead_ships, g.battle.match_stats,
+                    g.battle.team_game, g.battle.home_player,
+                    g.instant_action, g.player_character, g.text_manager)
             if game_over:
                 from spacewar.ui.messagebox import Messagebox
                 g.message_box = Messagebox(
@@ -30,6 +54,10 @@ class TurnResolutionState(GameState):
             elif g.battle.player is None:
                 return StateID.SPECTATING
             else:
+                if g.active_run:
+                    from spacewar.states.roguelike_states import \
+                        maybe_spawn_reinforcement
+                    maybe_spawn_reinforcement(g)
                 return StateID.BATTLE_IDLE
         return None
 
@@ -128,6 +156,15 @@ class GameOverState(GameState):
             loot = run.apply_battle_results(
                 player_won, enemies_killed, player_hull, player_shields)
 
+            harvested = getattr(g.battle, 'harvested', None)
+            if run.alive and harvested and (
+                    harvested["scrap"] or harvested["materials"] or
+                    harvested["components"]):
+                from spacewar.roguelike.loot import apply_loot
+                apply_loot(harvested, run.inventory)
+            else:
+                harvested = None
+
             g.battle = None
             if not run.alive:
                 from spacewar.ui.messagebox import Messagebox
@@ -145,9 +182,11 @@ class GameOverState(GameState):
             elif loot:
                 from spacewar.roguelike.loot import format_loot
                 from spacewar.ui.messagebox import Messagebox
+                text = f"Battle Complete!\n\n{format_loot(loot)}"
+                if harvested:
+                    text += f"\n\nHarvested:\n{format_loot(harvested)}"
                 g.message_box = Messagebox(
-                    f"Battle Complete!\n\n{format_loot(loot)}",
-                    g.infofont, g.display.get_width(),
+                    text, g.infofont, g.display.get_width(),
                     g.settings.foreground, g.settings.background)
             return StateID.ROGUELIKE_MAP
 

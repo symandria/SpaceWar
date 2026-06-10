@@ -206,9 +206,14 @@ class TestEncounters:
     def test_battle_config_boss(self):
         config = generate_battle_config(2, NodeType.BOSS)
         assert config["is_boss"]
-        assert len(config["enemies"]) >= 1
-        rank = config["enemies"][0][0]
-        assert rank == BOSS_RANKS[2]
+        assert config["boss_mode"] in ("duel", "pair")
+        if config["boss_mode"] == "duel":
+            assert len(config["enemies"]) == 1
+            assert config["enemies"][0][0] == BOSS_RANKS[2]
+        else:
+            assert len(config["enemies"]) == 2
+            # Teamed pair shares one race.
+            assert config["enemies"][0][1] == config["enemies"][1][1]
 
     def test_shop_inventory(self):
         items = generate_shop_inventory(1)
@@ -345,7 +350,8 @@ class TestRun:
         loot = run.apply_battle_results(True, 2, 40, 80)
         assert loot is not None
         assert run.hull == 40
-        assert run.shields == 80
+        # Shields recharge fully between nodes; hull damage persists.
+        assert run.shields == run.max_shields
         assert run.inventory.scrap > 0
 
     def test_death_on_hull_zero(self):
@@ -420,7 +426,7 @@ class TestRoguelikeBattleResolution:
         assert run.alive
         assert run.battles_won == 1
         assert run.hull == 37
-        assert run.shields == 42
+        assert run.shields == run.max_shields  # recharged between nodes
         assert run.inventory.scrap > 0
 
     def test_defeat_returns_to_main_menu_with_buttons(self):
@@ -447,26 +453,37 @@ class TestRoguelikeBattleResolution:
 
 
 class TestEncounterRaces:
+    @staticmethod
+    def _spec_race_ok(spec, races):
+        """Faction ships keep their cross-theme signature sprite;
+        anything faction-less must come from the allowed races."""
+        from spacewar.roguelike.factions import FACTIONS
+        rank, race, faction = spec[0], spec[1], spec[2]
+        if faction:
+            return race in FACTIONS[faction]["races"] or race in races
+        return race in races
+
     def test_battle_config_restricted_to_available_races(self):
         races = ("federation", "klingon")
         for tier in (1, 2, 3):
             for ntype in (NodeType.BATTLE, NodeType.ELITE, NodeType.BOSS):
                 config = generate_battle_config(tier, ntype, races=races)
-                for _rank, race in config["enemies"]:
-                    assert race in races
+                for spec in config["enemies"]:
+                    assert self._spec_race_ok(spec, races)
 
     def test_battle_config_defaults_to_classic_races(self):
         from spacewar.roguelike.encounters import BASE_RACES
         for tier in (1, 2, 3):
             config = generate_battle_config(tier, NodeType.BATTLE)
-            for _rank, race in config["enemies"]:
-                assert race in BASE_RACES
+            for spec in config["enemies"]:
+                assert self._spec_race_ok(spec, BASE_RACES)
 
     def test_battle_config_excludes_sentry(self):
         races = ("sentry", "federation")
-        config = generate_battle_config(1, NodeType.BATTLE, races=races)
-        for _rank, race in config["enemies"]:
-            assert race == "federation"
+        for _ in range(30):
+            config = generate_battle_config(1, NodeType.BATTLE, races=races)
+            for spec in config["enemies"]:
+                assert spec[1] != "sentry"
 
 
 class TestSectorMapBoss:
@@ -573,6 +590,8 @@ class TestItemization:
         for tier in (1, 2, 3):
             for _ in range(30):
                 comp = _random_component(tier)
+                if comp.slot == ComponentSlot.SPECIAL:
+                    continue  # specials have no stat steps to allocate
                 if comp.slot in (ComponentSlot.WEAPON_1, ComponentSlot.WEAPON_2):
                     wtype = WeaponType(comp.get("weapon_type"))
                     base = {"weapon_range": WEAPON_STATS[wtype]["max_range"]}
