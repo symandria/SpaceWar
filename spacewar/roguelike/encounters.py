@@ -96,12 +96,17 @@ def generate_battle_config(tier, node_type=NodeType.BATTLE, races=None):
 
 
 def generate_shop_inventory(tier):
+    from spacewar.components.base import ComponentSlot
     from spacewar.roguelike.loot import _random_component
     items = []
     for _ in range(3 + tier):
         comp = _random_component(tier)
         if comp:
-            price = (comp.power_cost * 15 + tier * 20)
+            if comp.slot == ComponentSlot.POWER_SOURCE:
+                # Reactors cost no power; price by output instead.
+                price = comp.get("power_provided", 24) * 3 + tier * 20
+            else:
+                price = (comp.power_cost * 15 + tier * 20)
             items.append({"component": comp, "price": price})
 
     items.append({"type": "material", "material": "common", "amount": 3, "price": 30})

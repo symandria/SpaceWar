@@ -334,7 +334,10 @@ class _UpgradeMenuAction(_MenuActionBase):
     def __call__(self):
         g = self.game
         run = g.active_run
-        from spacewar.roguelike.upgrades import get_upgrade_level, can_upgrade, get_upgrade_cost_text, UPGRADE_MULTIPLIERS
+        from spacewar.roguelike.upgrades import (
+            get_upgrade_level, can_upgrade, get_upgrade_cost_text,
+            COMPONENT_STAT_STEPS, MAX_UPGRADE_LEVEL,
+        )
         from spacewar.menus.component_menu import SLOT_ORDER, SLOT_LABELS
 
         inv = run.inventory
@@ -346,19 +349,18 @@ class _UpgradeMenuAction(_MenuActionBase):
         buttons = []
         for slot in SLOT_ORDER:
             comp = run.loadout.get_component(slot)
-            if not comp:
+            if not comp or not COMPONENT_STAT_STEPS.get(slot):
                 continue
             lvl = get_upgrade_level(comp)
             label = SLOT_LABELS.get(slot, slot.value)
-            if lvl >= 3:
+            if lvl >= MAX_UPGRADE_LEVEL:
                 buttons.append((f"{label}: {comp.name} [MAX]", _UpgradeMenuAction(g)))
             else:
                 cost = get_upgrade_cost_text(comp)
                 upgradeable = can_upgrade(comp, run.inventory)
-                next_mult = UPGRADE_MULTIPLIERS.get(lvl + 1, 1.0)
-                preview = f"x{next_mult}"
                 if upgradeable:
-                    label_text = f"{label}: {comp.name} -> Lv{lvl+1} ({preview}) [{cost}]"
+                    label_text = (f"{label}: {comp.name} -> Lv{lvl+1} "
+                                  f"(+1 stat) [{cost}]")
                 else:
                     label_text = f"{label}: {comp.name} Lv{lvl} (need: {cost})"
                 buttons.append((

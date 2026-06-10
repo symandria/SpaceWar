@@ -70,6 +70,7 @@ class TestFullBattleTurn:
             dead_ships = []
             torpedoes = []
             mines = []
+            wrecks = []
             match_stats = {}
             team_game = False
             player = None

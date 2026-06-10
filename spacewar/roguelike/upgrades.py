@@ -1,4 +1,6 @@
-from spacewar.components.base import Component
+import random
+
+from spacewar.components.base import ComponentSlot
 
 
 UPGRADE_COSTS = {
@@ -7,22 +9,66 @@ UPGRADE_COSTS = {
     3: {"rare": 1, "uncommon": 2, "scrap": 200},
 }
 
-UPGRADE_MULTIPLIERS = {
-    1: 1.25,
-    2: 1.50,
-    3: 2.00,
+# Every component can take up to 3 player upgrades, each worth one
+# upgrade point on top of the tier's base points (T1 +2, T2 +6, T3 +10).
+MAX_UPGRADE_LEVEL = 3
+
+# Each entry is stat: (step, cost) -- one purchase adds `step` to the
+# stat and consumes `cost` upgrade points. Relative values per the
+# design notes: +1 acceleration is worth 2 max speed; +1 cloak
+# detection is worth 2 vision.
+COMPONENT_STAT_STEPS = {
+    ComponentSlot.ENGINE: {
+        "max_speed": (1, 1),
+        "acceleration": (1, 2),
+        "turning_degrees": (15, 1),
+        "maneuvering_points": (1, 2),
+    },
+    ComponentSlot.SENSORS: {
+        "vision_forward": (2, 1),
+        "vision_backward": (1, 1),
+        "cloak_detection": (1, 1),
+    },
+    ComponentSlot.SHIELDS: {
+        "strength": (15, 1),
+        "passive_regen": (3, 1),
+        "active_dr": (10, 1),
+    },
+    ComponentSlot.HULL: {
+        "strength": (10, 1),
+        "collision_damage": (10, 1),
+    },
+    ComponentSlot.WEAPON_1: {"weapon_range": (1, 1)},
+    ComponentSlot.WEAPON_2: {"weapon_range": (1, 1)},
+    ComponentSlot.STEALTH: {"passive_stealth": (1, 1)},
+    ComponentSlot.POWER_SOURCE: {"power_provided": (3, 1)},
 }
 
-UPGRADEABLE_STATS = {
-    "max_speed", "acceleration", "turning_degrees", "maneuvering_points",
-    "vision_forward", "vision_backward", "cloak_detection",
-    "strength", "passive_regen", "active_dr",
-    "collision_damage", "weapon_range", "passive_stealth",
-    "power_provided", "teleport_range",
+STAT_CAPS = {
+    "acceleration": 6,
+    "turning_degrees": 360,
+    "active_dr": 50,
 }
 
-NON_SCALING_STATS = {"weapon_type", "ability_type", "active_cloak", "active_regen_mult",
-                      "range_fixed", "recharge", "duration"}
+
+def allocate_upgrade_points(component, points):
+    """Spend upgrade points on randomly chosen stats this component type
+    can have, respecting per-stat costs and caps. Returns points spent."""
+    steps = COMPONENT_STAT_STEPS.get(component.slot, {})
+    remaining = points
+    while remaining > 0:
+        choices = [
+            (stat, step, cost) for stat, (step, cost) in steps.items()
+            if cost <= remaining and (
+                stat not in STAT_CAPS
+                or component.stats.get(stat, 0) + step <= STAT_CAPS[stat])
+        ]
+        if not choices:
+            break
+        stat, step, cost = random.choice(choices)
+        component.stats[stat] = component.stats.get(stat, 0) + step
+        remaining -= cost
+    return points - remaining
 
 
 def get_upgrade_level(component):
@@ -31,7 +77,9 @@ def get_upgrade_level(component):
 
 def can_upgrade(component, inventory):
     level = get_upgrade_level(component)
-    if level >= 3:
+    if level >= MAX_UPGRADE_LEVEL:
+        return False
+    if not COMPONENT_STAT_STEPS.get(component.slot):
         return False
     next_level = level + 1
     costs = UPGRADE_COSTS[next_level]
@@ -46,7 +94,7 @@ def can_upgrade(component, inventory):
 
 def upgrade_component(component, inventory):
     level = get_upgrade_level(component)
-    if level >= 3 or not can_upgrade(component, inventory):
+    if level >= MAX_UPGRADE_LEVEL or not can_upgrade(component, inventory):
         return False
     next_level = level + 1
     costs = UPGRADE_COSTS[next_level]
@@ -56,13 +104,7 @@ def upgrade_component(component, inventory):
         else:
             inventory.spend_material(mat, amount)
 
-    mult = UPGRADE_MULTIPLIERS[next_level]
-    for key, value in component.stats.items():
-        if key in UPGRADEABLE_STATS and isinstance(value, (int, float)):
-            if isinstance(value, int):
-                component.stats[key] = max(value + 1, int(value * mult))
-            else:
-                component.stats[key] = round(value * mult, 2)
+    allocate_upgrade_points(component, 1)
 
     component.upgrade_level = next_level
     suffix = "+" * next_level
@@ -73,7 +115,7 @@ def upgrade_component(component, inventory):
 
 def get_upgrade_cost_text(component):
     level = get_upgrade_level(component)
-    if level >= 3:
+    if level >= MAX_UPGRADE_LEVEL:
         return "Max Level"
     costs = UPGRADE_COSTS[level + 1]
     parts = []

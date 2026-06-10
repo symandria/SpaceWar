@@ -21,6 +21,18 @@ from spacewar.states.state_machine import StateID
 from spacewar.systems.scoring import ScoringSystem
 
 
+def _implied_points(comp, base_stats):
+    """How many upgrade points the component's stats represent over a
+    baseline, derived from the step/cost table."""
+    from spacewar.roguelike.upgrades import COMPONENT_STAT_STEPS
+    total = 0
+    for stat, (step, cost) in COMPONENT_STAT_STEPS[comp.slot].items():
+        delta = comp.stats.get(stat, 0) - base_stats.get(stat, 0)
+        assert delta % step == 0, f"{stat} delta {delta} not a multiple of {step}"
+        total += (delta // step) * cost
+    return total
+
+
 class _DummySettings:
     foreground = (255, 255, 255)
     background = (0, 0, 0)
@@ -254,14 +266,14 @@ class TestUpgrades:
         assert upgrade_component(eng, inv)
         assert get_upgrade_level(eng) == 1
 
-    def test_upgrade_improves_stats(self):
+    def test_upgrade_adds_one_stat_point(self):
         eng = basic_engine()
-        old_speed = eng.get("max_speed")
+        base = dict(eng.stats)
         inv = Inventory()
         inv.add_scrap(500)
         inv.add_material("common", 10)
         upgrade_component(eng, inv)
-        assert eng.get("max_speed") > old_speed
+        assert _implied_points(eng, base) == 1
 
     def test_max_level_three(self):
         eng = basic_engine()
@@ -529,6 +541,76 @@ class TestEquipPowerBudget:
         from spacewar.components.base import ComponentSlot
         old = run.inventory.get_components_for_slot(ComponentSlot.ENGINE)
         assert len(old) == 1
+
+
+class TestItemization:
+    def test_power_scales_50_percent_per_tier_above_base(self):
+        from spacewar.roguelike.loot import power_cost_for_tier
+        assert power_cost_for_tier(4, 1) == 6   # 4 * 1.5
+        assert power_cost_for_tier(4, 2) == 9   # 4 * 2.25
+        assert power_cost_for_tier(4, 3) == 14  # 4 * 3.375
+
+    def test_base_points_by_tier(self):
+        from spacewar.roguelike.loot import base_points_for_tier
+        assert base_points_for_tier(1) == 2
+        assert base_points_for_tier(2) == 6
+        assert base_points_for_tier(3) == 10
+
+    def test_drops_carry_tier_base_points(self):
+        from spacewar.components.base import ComponentSlot
+        from spacewar.components import defaults as d
+        from spacewar.roguelike.loot import _random_component, base_points_for_tier
+        from spacewar.systems.weapons import WeaponType, WEAPON_STATS
+
+        base_lookup = {
+            ComponentSlot.ENGINE: d.basic_engine().stats,
+            ComponentSlot.SENSORS: d.basic_sensors().stats,
+            ComponentSlot.SHIELDS: d.basic_shields().stats,
+            ComponentSlot.HULL: d.basic_hull().stats,
+            ComponentSlot.STEALTH: d.basic_stealth().stats,
+            ComponentSlot.POWER_SOURCE: d.basic_power_source().stats,
+        }
+        for tier in (1, 2, 3):
+            for _ in range(30):
+                comp = _random_component(tier)
+                if comp.slot in (ComponentSlot.WEAPON_1, ComponentSlot.WEAPON_2):
+                    wtype = WeaponType(comp.get("weapon_type"))
+                    base = {"weapon_range": WEAPON_STATS[wtype]["max_range"]}
+                else:
+                    base = base_lookup[comp.slot]
+                assert _implied_points(comp, base) == base_points_for_tier(tier), \
+                    f"tier {tier} {comp.name} has wrong point total"
+
+    def test_allocation_respects_caps(self):
+        from spacewar.roguelike.upgrades import allocate_upgrade_points
+        from spacewar.components.defaults import basic_shields
+        eng = basic_engine()
+        allocate_upgrade_points(eng, 100)
+        assert eng.get("acceleration") <= 6
+        assert eng.get("turning_degrees") <= 360
+        sh = basic_shields()
+        allocate_upgrade_points(sh, 100)
+        assert sh.get("active_dr") <= 50
+
+    def test_no_range_fixed_weapon_drops(self):
+        from spacewar.components.base import ComponentSlot
+        from spacewar.roguelike.loot import _random_component
+        for _ in range(200):
+            comp = _random_component(1)
+            if comp.slot in (ComponentSlot.WEAPON_1, ComponentSlot.WEAPON_2):
+                assert comp.get("weapon_type") not in ("shockwave", "mines")
+
+    def test_reactor_shop_price_not_trivial(self):
+        from spacewar.components.base import ComponentSlot
+        from spacewar.roguelike.encounters import generate_shop_inventory
+        found = 0
+        for _ in range(60):
+            for item in generate_shop_inventory(1):
+                comp = item.get("component")
+                if comp and comp.slot == ComponentSlot.POWER_SOURCE:
+                    found += 1
+                    assert item["price"] >= 80
+        assert found > 0
 
 
 class TestShopAndEvents:

@@ -1,7 +1,32 @@
 import random
 
 from spacewar.components.base import Component, ComponentSlot
+from spacewar.components.defaults import (
+    basic_engine, basic_sensors, basic_shields, basic_hull,
+    basic_stealth, basic_power_source,
+)
+from spacewar.roguelike.upgrades import allocate_upgrade_points
 from spacewar.systems.weapons import WeaponType, WEAPON_STATS
+
+
+# Basic starter gear is tier 0. Dropped gear comes with base upgrade
+# points already allocated; player upgrades can add up to 3 more.
+BASE_POINTS_BY_TIER = {1: 2, 2: 6, 3: 10}
+
+# Range-fixed weapons (shockwave, mines) get nothing from weapon_range
+# points, so they never drop as loot.
+DROPPABLE_WEAPON_TYPES = [
+    wt for wt in WeaponType if not WEAPON_STATS[wt].get("range_fixed")
+]
+
+
+def base_points_for_tier(tier):
+    return BASE_POINTS_BY_TIER.get(tier, 2 + 4 * (tier - 1))
+
+
+def power_cost_for_tier(base_cost, tier):
+    """Components consume +50% more power per tier above tier 0."""
+    return int(base_cost * 1.5 ** tier + 0.5)
 
 
 def generate_battle_loot(tier, enemies_killed, player_won):
@@ -48,38 +73,36 @@ def _random_component(tier):
     slot = random.choice([
         ComponentSlot.ENGINE, ComponentSlot.SENSORS, ComponentSlot.SHIELDS,
         ComponentSlot.HULL, ComponentSlot.WEAPON_1, ComponentSlot.WEAPON_2,
-        ComponentSlot.STEALTH,
+        ComponentSlot.STEALTH, ComponentSlot.POWER_SOURCE,
     ])
 
-    mult = 1.0 + tier * 0.15
-
     if slot == ComponentSlot.ENGINE:
-        return Component(slot, f"Salvaged Engine Mk{tier}", 3 + tier,
-                         max_speed=int(5 * mult), acceleration=int(2 * mult),
-                         turning_degrees=90, maneuvering_points=1)
+        comp, base_name = basic_engine(), "Engine"
     elif slot == ComponentSlot.SENSORS:
-        return Component(slot, f"Salvaged Sensors Mk{tier}", 2 + tier,
-                         vision_forward=int(10 * mult), vision_backward=int(5 * mult),
-                         cloak_detection=tier - 1)
+        comp, base_name = basic_sensors(), "Sensors"
     elif slot == ComponentSlot.SHIELDS:
-        return Component(slot, f"Salvaged Shields Mk{tier}", 4 + tier,
-                         strength=int(100 * mult), passive_regen=5 + tier * 2,
-                         active_regen_mult=1.0, active_dr=0)
+        comp, base_name = basic_shields(), "Shields"
     elif slot == ComponentSlot.HULL:
-        return Component(slot, f"Salvaged Hull Mk{tier}", 2 + tier,
-                         strength=int(50 * mult), collision_damage=int(25 * mult))
+        comp, base_name = basic_hull(), "Hull"
     elif slot in (ComponentSlot.WEAPON_1, ComponentSlot.WEAPON_2):
-        wtype = random.choice(list(WeaponType))
+        wtype = random.choice(DROPPABLE_WEAPON_TYPES)
         stats = WEAPON_STATS[wtype]
-        base_range = stats["max_range"]
-        return Component(slot, f"Salvaged {stats['display_name']}", 3 + tier,
-                         weapon_type=wtype.value,
-                         weapon_range=base_range + tier)
+        comp = Component(slot, "", 3, weapon_type=wtype.value,
+                         weapon_range=stats["max_range"])
+        base_name = stats["display_name"]
     elif slot == ComponentSlot.STEALTH:
         has_cloak = random.random() < 0.3
-        return Component(slot, f"Salvaged Stealth Mk{tier}", 2 + tier,
-                         passive_stealth=tier, active_cloak=has_cloak)
-    return None
+        comp = basic_stealth(active_cloak=has_cloak)
+        base_name = "Cloaking Device" if has_cloak else "Stealth Plating"
+    elif slot == ComponentSlot.POWER_SOURCE:
+        comp, base_name = basic_power_source(), "Reactor"
+    else:
+        return None
+
+    comp.name = f"Salvaged {base_name} Mk{tier}"
+    comp.power_cost = power_cost_for_tier(comp.power_cost, tier)
+    allocate_upgrade_points(comp, base_points_for_tier(tier))
+    return comp
 
 
 def apply_loot(loot, inventory):
